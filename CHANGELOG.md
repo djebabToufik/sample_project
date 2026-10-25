@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/djebabToufik/sample_project/compare/v1.0.4...v1.0.5) (2026-10-25)
+
+
+### Documentation
+
+* shorten the README and replace the broken screenshots ([#15](https://github.com/djebabToufik/sample_project/issues/15)) ([79b9bc2](https://github.com/djebabToufik/sample_project/commit/79b9bc25fb705bbb38cd08e56b0ee5e4ea876865))
+
 ## [1.0.4](https://github.com/djebabToufik/sample_project/compare/v1.0.3...v1.0.4) (2026-10-25)
 
 
