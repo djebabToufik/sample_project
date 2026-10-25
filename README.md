@@ -8,6 +8,9 @@ Production lines report their state changes; the platform turns them into live *
 (Overall Equipment Effectiveness), downtime and energy dashboards, and maintenance teams plan
 their work on the same assets (**CMMS**).
 
+**Live demo: <https://demo.opensourceoeesoftware.com>**, log in with `demo` / `oee-demo`
+(the data is reset every night).
+
 ![OEE dashboard](docs/screenshots/oee.png)
 
 ## Run it
@@ -58,9 +61,35 @@ title. Each image is **built once** and the same digest is promoted to release:
 2. **Merge:** no rebuild. The tested images are retagged `sha-<commit>` and `main`.
 3. **Release:** [release-please](https://github.com/googleapis/release-please) writes the changelog
    and version; the same images are tagged `x.y.z` and `latest`.
+4. **Deploy:** the release goes to the [live demo](https://demo.opensourceoeesoftware.com), then a
+   smoke test logs in to it over HTTPS.
 
 Nightly, the full test suite runs and the current images are scanned again. Details in
 [`.github/workflows`](.github/workflows).
+
+## Infrastructure
+
+The live demo runs on AWS, described in Terraform ([`infra/`](infra)):
+
+```mermaid
+flowchart LR
+    Release["GitHub release"] -- "OIDC, no stored keys" --> Role["IAM deploy role"]
+    Role -- "Systems Manager" --> EC2
+    Visitor -- HTTPS --> Caddy
+    subgraph EC2 ["EC2 (eu-central-1)"]
+        Caddy["Caddy<br/>Let's Encrypt"] --> Stack["docker compose:<br/>nginx, Django, Postgres, Redis"]
+    end
+```
+
+- **One server, the same compose stack as locally**, with Caddy in front for HTTPS. Only ports
+  80 and 443 are open: there is no SSH, commands reach the server through AWS Systems Manager.
+- **Deploys without AWS keys.** GitHub's OIDC token gets short-lived credentials for a role that
+  only trusts this repository's `demo` environment and can only run commands on the demo server.
+  The server then pulls the release's images: the ones tested in CI.
+- **Secrets stay on the server.** They are generated on first boot and are not in Git, in
+  Terraform or in GitHub.
+- **Cheap to run and to throw away.** About 20 USD a month with a budget alert, the demo data is
+  reset every night, and `terraform destroy` removes everything.
 
 ## Design decisions
 
