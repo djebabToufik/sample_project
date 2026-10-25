@@ -1,6 +1,6 @@
 [project]
 name = "oee-backend"
-version = "0.1.0"
+version = "1.0.0"
 description = "Django backend (REST API and live WebSockets) of the OEE & CMMS software"
 requires-python = "==3.13.*"
 # Direct dependencies only; exact versions are in uv.lock.
