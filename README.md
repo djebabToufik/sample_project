@@ -1,6 +1,7 @@
 # Portfolio OEE & CMMS
 
 [![CI](https://github.com/djebabToufik/sample_project/actions/workflows/ci.yml/badge.svg)](https://github.com/djebabToufik/sample_project/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/djebabToufik/sample_project/branch/main/graph/badge.svg)](https://codecov.io/gh/djebabToufik/sample_project)
 [![Release](https://img.shields.io/github/v/release/djebabToufik/sample_project)](https://github.com/djebabToufik/sample_project/releases)
 [![License](https://img.shields.io/github/license/djebabToufik/sample_project)](LICENSE)
 
@@ -64,7 +65,8 @@ title. Each image is **built once** and the same digest is promoted to release:
 4. **Deploy:** the release goes to the [live demo](https://demo.opensourceoeesoftware.com), then a
    smoke test logs in to it over HTTPS.
 
-Nightly, the full test suite runs and the current images are scanned again. Details in
+Nightly, the full test suite runs and the current images are scanned again. Dependabot proposes
+dependency updates weekly and CodeQL analyzes the code (see [SECURITY.md](SECURITY.md)). Details in
 [`.github/workflows`](.github/workflows).
 
 ## Infrastructure

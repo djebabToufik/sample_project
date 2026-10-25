@@ -1,0 +1,13 @@
+# Backend coverage (ci.yml). The numbers are shown on pull requests but never block them:
+# the 90 % minimum is enforced by the test job itself (backend/pyproject.toml).
+fixes:
+  - "::backend/" # coverage.xml paths are relative to backend/
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+comment: false

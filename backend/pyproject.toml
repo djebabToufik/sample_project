@@ -24,11 +24,28 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.17",
     "ruff>=0.14",
 ]
 
 [tool.uv]
 package = false
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*", "*/tests.py", "*/test_*.py",
+    "manage.py", "backend/asgi.py", "backend/wsgi.py",
+    "healthcheck.py",  # Docker health check, runs outside the app
+]
+# Paths relative to backend/ in coverage.xml (Codecov maps them to the repository, codecov.yml).
+relative_files = true
+# Parts of the code run in other threads (WebSocket consumers, database_sync_to_async).
+concurrency = ["thread"]
+
+[tool.coverage.report]
+skip_empty = true
+fail_under = 90
 
 [tool.ruff]
 line-length = 120
