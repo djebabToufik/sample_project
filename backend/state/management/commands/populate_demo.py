@@ -1,6 +1,7 @@
 import os
 import random
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -29,8 +30,14 @@ class Command(BaseCommand):
         User = get_user_model()
         profile = UserProfile.objects.filter(organization=organization).first()
         if not profile:
-            # Prefer an existing superuser, otherwise create one using OEE_SUPERUSER_* env vars
-            if User.objects.filter(is_superuser=True).exists():
+            if settings.DEMO_USERNAME and settings.DEMO_PASSWORD:
+                # Public demo: a normal account, administrator of the demo plant only (no Django admin).
+                user, _ = User.objects.get_or_create(username=settings.DEMO_USERNAME)
+                user.set_password(settings.DEMO_PASSWORD)
+                user.save()
+                self.stdout.write(self.style.SUCCESS(f'Created demo account: {user.username}'))
+            # Otherwise prefer an existing superuser, or create one using OEE_SUPERUSER_* env vars
+            elif User.objects.filter(is_superuser=True).exists():
                 user = User.objects.filter(is_superuser=True).first()
             else:
                 username = os.getenv('OEE_SUPERUSER_USERNAME')

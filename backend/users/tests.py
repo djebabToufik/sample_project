@@ -403,3 +403,38 @@ class PublicSettingsTest(TestCase):
         self.assertEqual(client.get('/api/auth/settings/').json(), {'signup': True})
         with override_settings(ALLOW_SIGNUP=False):
             self.assertEqual(client.get('/api/auth/settings/').json(), {'signup': False})
+
+    def test_demo_credentials_only_on_a_public_demo(self):
+        client = APIClient()
+        self.assertNotIn('demo', client.get('/api/auth/settings/').json())
+        with override_settings(DEMO_USERNAME='demo', DEMO_PASSWORD='demo-pass'):
+            demo = client.get('/api/auth/settings/').json()['demo']
+        self.assertEqual(demo, {'username': 'demo', 'password': 'demo-pass'})
+
+
+@override_settings(DEMO_USERNAME='admin', DEMO_PASSWORD=PASSWORD)
+class DemoAccountTest(ApiTestCase):
+    """The public demo account is shared by every visitor: it cannot change its own account."""
+
+    def test_cannot_change_its_password(self):
+        response = self.client_for(self.admin).post(
+            '/api/auth/password/',
+            {'password': PASSWORD, 'password_1': 'New-Shift-Pass-9', 'password_2': 'New-Shift-Pass-9'},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password(PASSWORD))
+
+    def test_cannot_change_its_profile_but_manages_other_users(self):
+        client = self.client_for(self.admin)
+        own = client.patch(f'/api/users/{self.admin.userprofile.uuid}/', {'first_name': 'Mallory'})
+        self.assertEqual(own.status_code, 403)
+        other = client.patch(f'/api/users/{self.reporter.userprofile.uuid}/', {'type': 'Admin'})
+        self.assertEqual(other.status_code, 200)
+
+    def test_other_accounts_change_their_password(self):
+        response = self.client_for(self.reporter).post(
+            '/api/auth/password/',
+            {'password': PASSWORD, 'password_1': 'New-Shift-Pass-9', 'password_2': 'New-Shift-Pass-9'},
+        )
+        self.assertEqual(response.status_code, 200)

@@ -1,5 +1,7 @@
 """Who belongs to which organization, and with which role."""
 
+from django.conf import settings
+
 from db.models import UserProfile
 
 ADMIN = 'Admin'
@@ -25,3 +27,8 @@ def get_organization(user):
 def is_admin(user):
     profile = get_profile(user)
     return profile is not None and profile.type == ADMIN
+
+
+def is_demo_account(user):
+    """The public demo account (settings.DEMO_USERNAME), which may not change its own account."""
+    return bool(settings.DEMO_USERNAME) and getattr(user, 'username', None) == settings.DEMO_USERNAME
