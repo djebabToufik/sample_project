@@ -1,0 +1,38 @@
+name: Clean up images
+
+# Every pull request that changes a build folder pushes a tree-<hash> image. Once a week,
+# delete the images older than 14 days that no release or main points to
+# (rules in .github/scripts/cleanup-images.py). Started by hand, it is a dry run by default.
+on:
+  schedule:
+    - cron: "41 4 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Only list what would be deleted
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cleanup-images
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete old images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Delete images no release or main uses
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGES: sample_project-backend sample_project-frontend
+          KEEP_DAYS: "14"
+          # Scheduled runs delete; manual runs follow the dry-run input.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || 'false' }}
+        run: python3 -I .github/scripts/cleanup-images.py
