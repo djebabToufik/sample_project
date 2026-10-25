@@ -1,125 +1,78 @@
 # Portfolio OEE & CMMS
 
 [![CI](https://github.com/djebabToufik/sample_project/actions/workflows/ci.yml/badge.svg)](https://github.com/djebabToufik/sample_project/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/djebabToufik/sample_project)](https://github.com/djebabToufik/sample_project/releases)
+[![License](https://img.shields.io/github/license/djebabToufik/sample_project)](LICENSE)
 
-A web platform for production plants that combines **OEE tracking** (Overall Equipment Effectiveness)
-with a **CMMS** (Computerized Maintenance Management System). Lines report their state changes; the
-platform turns them into live OEE, downtime and energy dashboards, and maintenance teams plan and
-track their work on the same assets.
+Production lines report their state changes; the platform turns them into live **OEE**
+(Overall Equipment Effectiveness), downtime and energy dashboards, and maintenance teams plan
+their work on the same assets (**CMMS**).
 
-![Live view](Docs/screenshots/live.png)
+![OEE dashboard](docs/screenshots/oee.png)
 
-## Features
+## Run it
 
-- **Live line view** over WebSockets: state, OEE of the last 24 h and production per line, updated as
-  events arrive.
-- **OEE dashboards**: availability, performance and quality for any period, with downtime counted per
-  fault and per cell, and energy / cost estimates from the line's rates.
-- **CMMS**: assets, maintenance plans with instructions (PDF), a maintenance agenda, and an operator
-  view where technicians see and update their assigned work.
-- **Multi-tenant**: every query is limited to the user's organization; roles (admin, operator) are
+Requires Docker. Uses the published images, nothing is built locally:
+
+```bash
+cp .env.example .env
+OEE_IMAGE_TAG=latest docker compose up --no-build
+```
+
+Open <http://localhost> and log in with `OEE_SUPERUSER_USERNAME` / `OEE_SUPERUSER_PASSWORD`
+from `.env`. A demo plant with events and maintenance plans is created on first start.
+
+## Highlights
+
+- **Event-sourced OEE.** A line's history is a list of state events; OEE for any period is computed
+  from them, so there are no aggregates to keep in sync.
+- **Live updates** over WebSockets (Django Channels + Redis), scoped to the user's organization.
+- **Multi-tenant by design.** Every query is limited to the user's organization, and roles are
   enforced in the API, not only in the UI.
-- **Accounts**: session login with HttpOnly cookie and CSRF, email invitation links instead of
-  temporary passwords, password reset, rate limits on public endpoints.
-- **Machine API**: other software sends line states (`POST /api/line-states/`) with an admin-issued API
-  token; the server fills in the states a line skipped so durations stay consistent.
-- **White-label ready**: names, logo and theme live in one place (`frontend/src/branding/`).
+- **Secure defaults.** Session cookies with CSRF, invitation links instead of passwords, rate limits,
+  uploaded files served only after an access check (`X-Accel-Redirect`).
+- **Machine API.** Line software posts state changes with an API token.
 
-| OEE | Maintenance |
+| Downtimes | Maintenance plans |
 |---|---|
-| ![OEE dashboard](Docs/screenshots/oee.png) | ![CMMS dashboard](Docs/screenshots/cmms.png) |
-| ![Downtimes](Docs/screenshots/downtime.png) | ![Agenda](Docs/screenshots/agenda.png) |
+| ![Downtimes](docs/screenshots/downtimes.png) | ![Maintenance plans](docs/screenshots/maintenance-plans.png) |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Browser["React 19 + TypeScript<br/>(MUI, TanStack Query)"] -- "HTTPS / WebSocket" --> Nginx
-    Machines["Line / PLC software"] -- "REST + API token" --> Nginx
-    Nginx -- "/api, /admin, /ws" --> Django["Django 5.2 + DRF<br/>Channels (ASGI, gunicorn + uvicorn)"]
-    Nginx -- "static build" --> Browser
+    Browser["React 19 + TypeScript<br/>MUI, TanStack Query"] -- "HTTPS / WebSocket" --> Nginx
+    Machines["Line software"] -- "REST + API token" --> Nginx
+    Nginx -- "/api, /admin, /ws" --> Django["Django 5.2 + DRF<br/>Channels (ASGI)"]
     Django --> Postgres[(PostgreSQL 17)]
-    Django -- "channel layer, cache, rate limits" --> Redis[(Redis 7)]
+    Django --> Redis[(Redis 7)]
 ```
 
-- **Event-sourced OEE.** A line's history is a list of state events (`on`, `run`, `fault`, `stop`, ...).
-  OEE for any period is computed from the events in it plus the states already open at its start, so
-  there is no pre-aggregated data to keep in sync. Durations are computed in UTC, so periods across a
-  daylight-saving change are exact.
-- **Live updates.** A new event notifies the line's Channels group; each connected consumer reloads
-  its own view of the data and pushes it, so clients only ever receive data scoped to their
-  organization.
-- **Protected files.** Uploaded photos and PDFs are never served directly: Django checks access, then
-  hands the file to nginx with `X-Accel-Redirect`.
-- **Frontend.** Each area of the app is loaded on demand; React, the router and MUI sit in a separate
-  bundle that browsers keep across releases. Server data goes through TanStack Query hooks in
-  `src/data/`, and the session logic is isolated in `src/auth/`.
+## Delivery
 
-```
-backend/
-  backend/   settings, ASGI/WSGI entry points
-  core/      organization scoping, permissions, auth, shared test helpers
-  db/        organizations, users, assets, maintenance plans
-  state/     events, OEE calculation (util.py), WebSocket consumers, line-state API
-  apiv1/     CMMS API (assets, maintenance plans, users, protected files)
-  users/     login, sign-up, invitations, password reset
-frontend/
-  src/AppMain/    pages per area (dashboards, CMMS, admin, operator view)
-  src/components/ shared table, forms, dashboard cards and charts
-  src/data/       API types, query hooks, live sockets, OEE formulas
-  src/auth/       session handling
-  src/branding/   name, logo and theme
-  e2e/            Playwright tests
-```
+Every change goes through a pull request with a [Conventional Commit](https://www.conventionalcommits.org)
+title. Each image is **built once** and the same digest is promoted to release:
 
-## Tech stack
+1. **Pull request:** lint and test what changed, build the images whose folder changed, scan them
+   (Trivy), start the stack from them and run a smoke test, push to GHCR as `tree-<hash>`.
+2. **Merge:** no rebuild. The tested images are retagged `sha-<commit>` and `main`.
+3. **Release:** [release-please](https://github.com/googleapis/release-please) writes the changelog
+   and version; the same images are tagged `x.y.z` and `latest`.
 
-| Area | Tools |
-|---|---|
-| Backend | Python 3.13, Django 5.2, Django REST Framework, Channels, PostgreSQL 17, Redis 7, uv, ruff |
-| Frontend | React 19, TypeScript, MUI 9 (+ X Charts), TanStack Query 5, React Router 7, FullCalendar, Vite |
-| Testing | Django test runner (136 tests), Playwright browser tests (80+) with a faked backend |
-| Delivery | Docker (multi-stage, non-root backend image), docker compose, nginx, GitHub Actions |
-
-## Run it locally
-
-Requirements: Docker with docker compose.
-
-```bash
-cp .env.example .env        # then change the values marked change-me
-docker compose up --build
-```
-
-Open <http://localhost> and log in with `OEE_SUPERUSER_USERNAME` / `OEE_SUPERUSER_PASSWORD` from `.env`.
-With `DEMO=true` (the default in `.env.example`) that account owns a demo plant with lines, events
-and maintenance plans. The Django admin is at <http://localhost/admin>.
-
-On every start the backend applies migrations, checks the database schema against the models and
-collects static files; no manual step is needed.
+Nightly, the full test suite runs and the current images are scanned again. Details in
+[`.github/workflows`](.github/workflows).
 
 ## Development
 
-**Frontend** (from `frontend/`, Node 22):
-
 ```bash
-npm install
-npm run dev          # http://localhost:3000, proxies /api, /ws and /admin to the compose stack
-npm run lint         # ESLint
-npm run typecheck    # TypeScript
-npm test             # Playwright tests (first time: npx playwright install chromium)
+# backend/ (needs Postgres and Redis, see ci.yml)
+uv sync && uv run python manage.py test
+
+# frontend/
+npm ci
+npm run dev     # http://localhost:3000, proxies the API to the compose stack
+npm test        # Playwright tests
 ```
-
-**Backend** (from `backend/`, with [uv](https://docs.astral.sh/uv/)):
-
-```bash
-uv sync                          # virtualenv with ruff
-uv run ruff check . && uv run ruff format --check .
-uv run python manage.py test     # needs PostgreSQL and Redis, see .github/workflows/ci.yml
-```
-
-Dependencies are pinned in `backend/uv.lock` and `frontend/package-lock.json`; the Docker images
-install exactly those versions. CI runs lint, formatting, a migration check, all backend and browser
-tests, and builds the Docker images on every push.
 
 ## License
 
