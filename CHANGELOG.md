@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/djebabToufik/sample_project/compare/v1.0.3...v1.0.4) (2026-10-25)
+
+
+### Build and CI
+
+* delete old images from the registry every week ([#13](https://github.com/djebabToufik/sample_project/issues/13)) ([00d822b](https://github.com/djebabToufik/sample_project/commit/00d822b09498dcb231b335b53735e74f55b4453d))
+
 ## [1.0.3](https://github.com/djebabToufik/sample_project/compare/v1.0.2...v1.0.3) (2026-10-25)
 
 
