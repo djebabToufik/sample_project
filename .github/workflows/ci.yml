@@ -65,6 +65,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov upload without a stored token
     defaults:
       run:
         working-directory: backend
@@ -105,8 +108,19 @@ jobs:
         run: uv run ruff format --check .
       - name: Migrations are up to date
         run: uv run python manage.py makemigrations --check --dry-run
-      - name: Tests
-        run: uv run python manage.py test
+      - name: Tests with coverage (at least 90 %, pyproject.toml)
+        run: |
+          uv run coverage run manage.py test
+          uv run coverage report --sort=cover --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          uv run coverage report
+          uv run coverage xml
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          use_oidc: true
+          files: backend/coverage.xml
+          flags: backend
+          disable_search: true
+          fail_ci_if_error: false # a Codecov outage must not block a pull request
 
   frontend:
     name: Frontend (lint, types, build, browser tests)

@@ -8,6 +8,8 @@ __pycache__/
 .venv/
 .ruff_cache/
 /backend/media
+/backend/.coverage
+/backend/coverage.xml
 /backend/staticapi
 
 # Frontend
