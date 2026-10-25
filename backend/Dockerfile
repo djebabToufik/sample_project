@@ -1,7 +1,7 @@
 # Backend image: uv builds the virtualenv, the final image only holds Python, the virtualenv and the code.
 
 # --- Build stage -----------------------------------------------------------------------------------
-FROM python:3.13.17-slim-trixie AS build
+FROM python:3.15.0-slim-trixie AS build
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.16 /uv /usr/local/bin/uv
 
@@ -15,7 +15,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # --- Runtime stage ---------------------------------------------------------------------------------
-FROM python:3.13.17-slim-trixie
+FROM python:3.15.0-slim-trixie
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
