@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.8](https://github.com/djebabToufik/sample_project/compare/v1.0.7...v1.0.8) (2026-10-25)
+
+
+### Documentation
+
+* explain the main design decisions and their trade-offs ([#21](https://github.com/djebabToufik/sample_project/issues/21)) ([bc56841](https://github.com/djebabToufik/sample_project/commit/bc568412c482a14a80fa5970c99c986c451406e2))
+
 ## [1.0.7](https://github.com/djebabToufik/sample_project/compare/v1.0.6...v1.0.7) (2026-10-25)
 
 
