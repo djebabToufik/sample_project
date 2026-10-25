@@ -5,7 +5,7 @@
 # (OEE_BACKEND_TAG / OEE_FRONTEND_TAG pick one service's image, as CI does.)
 services:
   db:
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${OEE_DB_NAME}
