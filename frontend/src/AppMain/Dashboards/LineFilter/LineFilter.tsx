@@ -65,7 +65,7 @@ export default function LineFilter({ filter }: { filter: LineFilterState }) {
   );
 
   return (
-    <Card elevation={0}>
+    <Card elevation={1}>
       <CardHeader
         subheader="Select your line and date range"
         action={

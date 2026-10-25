@@ -23,10 +23,8 @@ interface CategoryBarChartProps {
   /** One color per bar, repeating (default: categoryColors) */
   colors?: string[];
   categoryGapRatio?: number;
-  /** Fixed value axis, e.g. { min: 0, max: 100, label: '%' } for percentages */
-  valueAxis?: { min?: number; max?: number; label?: string };
-  /** 0 = flat card (OEE dashboards) */
-  elevation?: number;
+  /** Value axis, e.g. { min: 0, max: 100, label: '%' } for percentages, { tickMinStep: 1 } for counts */
+  valueAxis?: { min?: number; max?: number; label?: string; tickMinStep?: number };
 }
 
 // One bar per category, each in its own color (dashboard charts).
@@ -38,10 +36,9 @@ export default function CategoryBarChart({
   colors = categoryColors,
   categoryGapRatio,
   valueAxis,
-  elevation = 1,
 }: CategoryBarChartProps) {
   return (
-    <Paper elevation={elevation} sx={{ p: 1 }} aria-label={title}>
+    <Paper elevation={1} sx={{ p: 1 }} aria-label={title}>
       <Typography variant="h5" gutterBottom sx={{ p: 2 }}>
         {title}
       </Typography>
@@ -56,6 +53,12 @@ export default function CategoryBarChart({
             label: axisLabel,
             colorMap: { type: 'ordinal', colors },
             categoryGapRatio,
+            // MUI hides labels that would overlap: with many bars, angle them so all show.
+            ...(labels.length > 5 && {
+              tickLabelInterval: () => true,
+              tickLabelStyle: { angle: -30, textAnchor: 'end', fontSize: 12 },
+              height: 'auto',
+            }),
           },
         ]}
       />

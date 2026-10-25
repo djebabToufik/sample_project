@@ -10,7 +10,7 @@ export default function LiveEvents({ machine }: { machine: string | undefined })
 
   return (
     <Paper
-      elevation={0}
+      elevation={1}
       sx={{ height: 75, display: 'flex', overflow: 'hidden', justifyContent: 'end' }}
       aria-label="Latest events"
     >

@@ -49,13 +49,16 @@ test('a line card on the Live page opens the OEE of that line', async ({ page, b
   await page.getByLabel('Line Mixer').getByRole('link', { name: 'OEE' }).click();
 
   await expect(page.getByLabel('Total run time')).toContainText('1 hour(s) and 30 minutes');
-  await expect(page.getByLabel('Over all Oee', { exact: true })).toContainText('2.00');
+  // Changes against the last 24 hours, all in percentage points (OEE 72 % vs 70 %).
+  await expect(page.getByLabel('OEE', { exact: true })).toContainText('+2.0 pts');
+  await expect(page.getByLabel('Availability', { exact: true })).toContainText('0.0 pts');
+  await expect(page.getByLabel('Overall OEE', { exact: true })).toContainText('72.0 %');
   const [call] = downtimeCalls(backend);
   expect(call.machine).toBe('a3');
   expect(call.created_at__gte).toMatch(BACKEND_DATE);
   expect(call.created_at__lte).toMatch(BACKEND_DATE);
-  // Default period: the last hour, until one hour from now.
-  expect(hoursBetween(call.created_at__gte, call.created_at__lte)).toBeCloseTo(2, 1);
+  // Default period: the last day, until one hour from now.
+  expect(hoursBetween(call.created_at__gte, call.created_at__lte)).toBeCloseTo(25, 1);
 });
 
 test('an idle line shows no data instead of an OEE', async ({ page, backend }) => {
@@ -63,8 +66,8 @@ test('an idle line shows no data instead of an OEE', async ({ page, backend }) =
   backend.json('GET', DOWNTIME, { ...downtime, oee_selected_period: idle });
   await login(page, '/dashboards/oee');
 
-  await expect(page.getByLabel('Over all oee', { exact: true })).toContainText('No data');
-  await expect(page.getByLabel('Over all Oee', { exact: true })).toContainText('–');
+  await expect(page.getByLabel('Overall OEE', { exact: true })).toContainText('No data');
+  await expect(page.getByLabel('OEE', { exact: true })).toContainText('–');
   await expect(page.getByLabel('Availability', { exact: true })).toContainText('–');
 });
 
@@ -152,7 +155,7 @@ test('the downtimes page charts the counts sent by the backend', async ({ page, 
   const perFault = page.getByLabel('Per fault type');
   await expect(perFault).toContainText('Jam');
   await expect(perFault).toContainText('Overheat');
-  await expect(page.getByLabel('Per Cell')).toContainText('Cell A');
+  await expect(page.getByLabel('Per cell')).toContainText('Cell A');
   // Bar heights follow the counts (3 : 1).
   const bars = perFault.locator('.MuiBarChart-element');
   await expect(bars).toHaveCount(2);

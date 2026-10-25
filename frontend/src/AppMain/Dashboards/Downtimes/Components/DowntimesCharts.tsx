@@ -28,18 +28,18 @@ export default function DowntimesCharts({ data }: { data: DowntimeData | undefin
           values={perFault.map((f) => f.count)}
           colors={colors}
           categoryGapRatio={0.6}
-          elevation={0}
+          valueAxis={{ min: 0, tickMinStep: 1 }}
         />
       </Grid>
       <Grid size={{ md: 12, xs: 12, lg: 6 }}>
         <CategoryBarChart
-          title="Per Cell"
+          title="Per cell"
           axisLabel="Cells"
           labels={perCell.map((c) => c.label)}
           values={perCell.map((c) => c.count)}
           colors={colors}
           categoryGapRatio={0.6}
-          elevation={0}
+          valueAxis={{ min: 0, tickMinStep: 1 }}
         />
       </Grid>
     </Grid>

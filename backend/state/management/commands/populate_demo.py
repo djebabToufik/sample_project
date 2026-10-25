@@ -68,9 +68,15 @@ class Command(BaseCommand):
         quantity = list(ws.columns)[7]
         scrap = list(ws.columns)[8]
 
-        for i in range(1):
+        # Spreadsheet rows 4-90: one recorded state per hour, in cycles that each start with "on"
+        # (rows 4, 54, 76) and end with the line off. Every demo line replays all rows, starting
+        # at another cycle, so the lines show different charts and every state sequence stays valid.
+        recorded_rows = list(range(4, 91))
+        demo_lines = [('Extrusion line 1', 4), ('Extrusion line 2', 54), ('Extrusion line 3', 76)]
+        for line_name, first_row in demo_lines:
             starting_time = date_time_obj - timezone.timedelta(hours=89)
-            line_name = 'Machine ' + str(i + 1)
+            start = recorded_rows.index(first_row)
+            rows = recorded_rows[start:] + recorded_rows[:start]
             line = Asset.objects.create(
                 name=line_name,
                 organization=organization,
@@ -101,45 +107,37 @@ class Command(BaseCommand):
             for fault in list_fault:
                 MachineFault.objects.create(machine=line, name=fault)
 
-            idx = 0
             cells = [cell for cell in Cell.objects.filter(machine=line)]
             faults = [fault for fault in MachineFault.objects.filter(machine=line)]
-            for _ in range(1):
-                for row in events:
-                    if idx < 4:
-                        pass
-                    elif idx > 90:
-                        pass
+            for idx in rows:
+                row = events[idx]
+                if row.value == 'report':
+                    if products[idx].value == 'product 1':
+                        product = product_1
                     else:
-                        if row.value == 'report':
-                            if products[idx].value == 'product 1':
-                                product = product_1
-                            else:
-                                product = product_2
-                            # adding reports uniformly
-                            qty_per_min = quantity[idx].value / 60
-                            scrap_per_min = scrap[idx].value / 60
-                            r_time = starting_time - timezone.timedelta(hours=1)
-                            for _ in range(60):
-                                Event.objects.create(
-                                    machine=line,
-                                    state='report',
-                                    quantity=qty_per_min,
-                                    scrap=scrap_per_min,
-                                    product=product,
-                                    created_at=r_time,
-                                )
-                                r_time = r_time + timezone.timedelta(minutes=1)
-                        elif row.value in ('fault', 'failure'):
-                            Event.objects.create(
-                                machine=line,
-                                state=row.value,
-                                fault=random.choice(faults),
-                                cell=random.choice(cells),
-                                created_at=starting_time,
-                            )
-                        else:
-                            Event.objects.create(machine=line, state=row.value, created_at=starting_time)
-                        starting_time += timezone.timedelta(hours=1)
-                    idx += 1
-                idx = 0
+                        product = product_2
+                    # adding reports uniformly
+                    qty_per_min = quantity[idx].value / 60
+                    scrap_per_min = scrap[idx].value / 60
+                    r_time = starting_time - timezone.timedelta(hours=1)
+                    for _ in range(60):
+                        Event.objects.create(
+                            machine=line,
+                            state='report',
+                            quantity=qty_per_min,
+                            scrap=scrap_per_min,
+                            product=product,
+                            created_at=r_time,
+                        )
+                        r_time = r_time + timezone.timedelta(minutes=1)
+                elif row.value in ('fault', 'failure'):
+                    Event.objects.create(
+                        machine=line,
+                        state=row.value,
+                        fault=random.choice(faults),
+                        cell=random.choice(cells),
+                        created_at=starting_time,
+                    )
+                else:
+                    Event.objects.create(machine=line, state=row.value, created_at=starting_time)
+                starting_time += timezone.timedelta(hours=1)

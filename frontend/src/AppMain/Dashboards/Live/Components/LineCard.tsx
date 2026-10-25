@@ -39,7 +39,7 @@ export default function LineCard({ machine }: { machine: Asset }) {
   );
 
   return (
-    <Card elevation={2} sx={{ mb: 3, height: '100%' }} aria-label={`Line ${machine.name}`}>
+    <Card elevation={1} sx={{ mb: 3, height: '100%' }} aria-label={`Line ${machine.name}`}>
       <CardHeader sx={{ pb: 0 }} subheader={machine.name || '-'} />
       <CardContent sx={{ p: 0 }}>
         <LineChart

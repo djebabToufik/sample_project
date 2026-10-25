@@ -22,18 +22,17 @@ export default function OeeGraphs({ data }: { data: DowntimeData | undefined }) 
       </Grid>
       <Grid size={{ md: 12, xs: 12, lg: 6 }}>
         <CategoryBarChart
-          title="Oee metrics"
-          axisLabel="Oee metrics"
+          title="OEE factors"
+          axisLabel=""
           labels={['Availability', 'Performance', 'Quality']}
           values={[availability, performance, quality]}
           colors={[rated(availability), rated(performance), rated(quality)]}
           categoryGapRatio={0.6}
-          valueAxis={{ min: 0, max: 100 }}
-          elevation={0}
+          valueAxis={{ min: 0, max: 100, label: '%' }}
         />
       </Grid>
       <Grid size={{ md: 12, xs: 12, lg: 6 }}>
-        <ScoreGauge title="Over all oee" value={oee} />
+        <ScoreGauge title="Overall OEE" value={oee} />
       </Grid>
       <Grid size={12}>
         <OeeComparison data={data} />

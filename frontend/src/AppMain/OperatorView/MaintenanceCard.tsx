@@ -31,7 +31,7 @@ export default function MaintenanceCard({
   );
 
   return (
-    <Paper elevation={0} sx={{ p: 3, mb: 3 }} aria-label="Maintenance plan">
+    <Paper elevation={1} sx={{ p: 3, mb: 3 }} aria-label="Maintenance plan">
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
         {maintenance?.name}
       </Typography>

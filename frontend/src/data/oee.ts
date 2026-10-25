@@ -60,19 +60,25 @@ export function oeeDurations(data: DowntimeData | undefined) {
 }
 
 /** Selected period minus the last 24 hours, per figure (two decimals); null when either has no data. */
+/**
+ * Change of each figure against the last 24 hours, in percentage points rounded to 0.1
+ * (null = no data). The backend sends availability, performance and quality as ratios (0-1)
+ * and the OEE in percent (0-100): all four are compared on the same percent scale.
+ */
 export function oeeComparison(data: DowntimeData | undefined) {
   const selected = data?.oee_selected_period;
   const last24h = data?.oee_last_24h;
-  const delta = (key: keyof OeeSummary) => {
+  const delta = (key: keyof OeeSummary, toPercent: number) => {
     const value = selected?.[key];
     const reference = last24h?.[key];
-    return value == null || reference == null ? null : fixed2(value - reference);
+    if (value == null || reference == null) return null;
+    return Math.round((value - reference) * toPercent * 10) / 10;
   };
   return {
-    availability: delta('availability'),
-    performance: delta('performance'),
-    quality: delta('quality'),
-    oee: delta('oee'),
+    availability: delta('availability', 100),
+    performance: delta('performance', 100),
+    quality: delta('quality', 100),
+    oee: delta('oee', 1),
   };
 }
 

@@ -31,7 +31,7 @@ export default function OperatorControl() {
         </Backdrop>
         <Grid container spacing={2} sx={{ mb: 3, mt: 2 }}>
           <Grid size={12} sx={{ display: 'flex', alignItems: 'end' }}>
-            <Card sx={{ width: '100%' }} elevation={0}>
+            <Card sx={{ width: '100%' }} elevation={1}>
               <CardContent>
                 <FormControl variant="standard" fullWidth sx={{ m: 1 }}>
                   <Select
