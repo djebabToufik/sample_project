@@ -325,7 +325,8 @@ class LiveSocketTest(ApiTransactionTestCase):
         self.cookie = f"sessionid={browser.cookies['sessionid'].value}"
 
     async def connect(self, query, cookie=None):
-        """Opens /ws/machine-data/?<query> with `cookie`; returns the communicator and whether it was accepted."""
+        """Opens /ws/machine-data/?<query> with `cookie`; returns the communicator and what the server
+        sent once connected: the line's data, or a close whose code tells the client not to retry."""
         scope = {
             'type': 'websocket',
             'path': '/ws/machine-data/',
@@ -335,29 +336,29 @@ class LiveSocketTest(ApiTransactionTestCase):
         }
         communicator = ApplicationCommunicator(self.application, scope)
         await communicator.send_input({'type': 'websocket.connect'})
-        answer = await communicator.receive_output(timeout=10)
-        return communicator, answer['type'] == 'websocket.accept'
+        self.assertEqual((await communicator.receive_output(timeout=10))['type'], 'websocket.accept')
+        return communicator, await communicator.receive_output(timeout=10)
 
     async def close(self, communicator):
         await communicator.send_input({'type': 'websocket.disconnect', 'code': 1000})
         await communicator.wait(timeout=5)
 
-    async def test_rejects_missing_or_wrong_session(self):
+    async def test_refuses_missing_or_wrong_session_as_not_logged_in(self):
         for cookie in [None, 'sessionid=forged']:
-            communicator, connected = await self.connect(f'machine={self.line.uuid}', cookie)
-            self.assertFalse(connected, cookie)
+            communicator, answer = await self.connect(f'machine={self.line.uuid}', cookie)
+            self.assertEqual(answer, {'type': 'websocket.close', 'code': 4401}, cookie)
             await self.close(communicator)
 
-    async def test_rejects_other_organizations_line(self):
-        for machine in [self.other_line.uuid, 'not-a-uuid']:
-            communicator, connected = await self.connect(f'machine={machine}', self.cookie)
-            self.assertFalse(connected, machine)
+    async def test_refuses_other_organizations_line_as_forbidden(self):
+        for machine in [self.other_line.uuid, 'not-a-uuid', '']:
+            communicator, answer = await self.connect(f'machine={machine}', self.cookie)
+            self.assertEqual(answer, {'type': 'websocket.close', 'code': 4403}, machine)
             await self.close(communicator)
 
     async def test_sends_line_data_and_ignores_client_messages(self):
-        communicator, connected = await self.connect(f'machine={self.line.uuid}', self.cookie)
-        self.assertTrue(connected)
-        first = json.loads((await communicator.receive_output(timeout=10))['text'])
+        communicator, answer = await self.connect(f'machine={self.line.uuid}', self.cookie)
+        self.assertEqual(answer['type'], 'websocket.send')
+        first = json.loads(answer['text'])
         self.assertEqual([e['state'] for e in first['data']], ['on', 'off'])
         self.assertEqual(len(first['oee']), 24)
 

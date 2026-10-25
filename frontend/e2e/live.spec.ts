@@ -105,6 +105,29 @@ test('reconnects after the connection drops', async ({ page }) => {
   expect(open(sockets, 'machine-oee').filter((s) => machineOf(s) === 'a1')).toHaveLength(1);
 });
 
+test('does not reconnect when the server refuses the line', async ({ page }) => {
+  let refused = 0;
+  const sockets = await fakeSockets(page, (socket) => {
+    if (channel(socket) !== 'machine-oee') return;
+    if (machineOf(socket) === 'a1') {
+      refused++;
+      // 4403: the line is not in the user's organization; retrying cannot help.
+      socket.route.close({ code: 4403, reason: 'Forbidden' });
+    } else socket.route.send(oeeMessage('run'));
+  });
+  await login(page);
+  await page.getByRole('link', { name: 'Live', exact: true }).click();
+
+  await expect.poll(() => open(sockets, 'machine-oee').map(machineOf).sort()).toEqual(['a2', 'a3']);
+  expect(refused).toBeGreaterThan(0);
+  // A dropped connection is retried after 1 s, then 2 s; a refused one is not retried at all.
+  // (Counted from here: React's development mode may connect twice when the card mounts.)
+  const attempts = refused;
+  await page.waitForTimeout(3500);
+  expect(refused).toBe(attempts);
+  expect(open(sockets, 'machine-oee').map(machineOf).sort()).toEqual(['a2', 'a3']);
+});
+
 test('the card links open the dashboards of that line', async ({ page, backend }) => {
   backend.json('GET', /^\/api\/downtime\/$/, {});
   await fakeSockets(page);
