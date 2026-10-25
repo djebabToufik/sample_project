@@ -18,7 +18,7 @@ interface ScoreGaugeProps {
 export default function ScoreGauge({ title, value, goodFrom = 65, children }: ScoreGaugeProps) {
   const color = value !== null && value >= goodFrom ? palette.success.main : palette.warning.main;
   return (
-    <Paper elevation={0} sx={{ height: '100%', p: 1 }} aria-label={title}>
+    <Paper elevation={1} sx={{ height: '100%', p: 1 }} aria-label={title}>
       <Typography variant="h5" gutterBottom sx={{ p: 2 }}>
         {title}
       </Typography>
@@ -27,7 +27,7 @@ export default function ScoreGauge({ title, value, goodFrom = 65, children }: Sc
           width={300}
           height={300}
           value={value}
-          text={value === null ? 'No data' : undefined}
+          text={value === null ? 'No data' : `${value.toFixed(1)} %`}
           sx={{
             [`& .${gaugeClasses.valueText}`]: { fontSize: 40 },
             [`& .${gaugeClasses.valueArc}`]: { fill: color },

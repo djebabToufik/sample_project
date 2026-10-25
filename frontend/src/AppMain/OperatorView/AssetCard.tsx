@@ -20,7 +20,7 @@ export default function AssetCard({ asset }: { asset: Asset | null | undefined }
     : undefined;
 
   return (
-    <Paper elevation={0} sx={{ p: 3, mb: 3 }} aria-label="Asset">
+    <Paper elevation={1} sx={{ p: 3, mb: 3 }} aria-label="Asset">
       {asset?.photo && (
         <Box sx={{ height: 200, borderRadius: 2, overflow: 'hidden', mb: 2, bgcolor: 'action.hover' }}>
           <img

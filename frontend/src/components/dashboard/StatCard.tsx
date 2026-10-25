@@ -8,7 +8,7 @@ export interface StatCardProps {
   icon: ReactNode;
   /**
    * Background, as a theme color path such as 'success.main' (white text).
-   * Without it the card is plain and flat; color the icon instead.
+   * Without it the card is white; color the icon instead.
    */
   color?: string;
   /** Size of the value: h4 for numbers, h6 for longer text such as durations */
@@ -29,7 +29,7 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <Paper
-      elevation={color ? 1 : 0}
+      elevation={1}
       sx={{ height: 150, p: 1, ...(color && { bgcolor: color, color: 'common.white' }) }}
       aria-label={title}
     >

@@ -26,7 +26,7 @@ export const presets: Preset[] = [
 function storedPreset(): Preset {
   const value = Number(readStorage(PERIOD_KEY));
   const scale = readStorage(SCALE_KEY);
-  return presets.find((p) => p.value === value && p.scale === scale) ?? presets[0];
+  return presets.find((p) => p.value === value && p.scale === scale) ?? presets[1];
 }
 
 /** A moment as ISO date with time zone (UTC), so the backend reads it right in any time zone. */
@@ -34,14 +34,20 @@ export function toBackendDate(date: Date): string {
   return date.toISOString();
 }
 
-/** From `preset` back from now, until one hour from now. */
+const HOUR_MS = 3_600_000;
+
+/**
+ * From `preset` back from now, until one hour from now. Hours are real elapsed time (a
+ * daylight saving change does not make "last day" 23 or 25 hours); days are calendar days.
+ */
 function presetRange(preset: Preset): DateRange {
-  const from = new Date();
-  if (preset.scale === 'h') from.setHours(from.getHours() - preset.value);
-  else from.setDate(from.getDate() - preset.value);
-  const to = new Date();
-  to.setHours(to.getHours() + 1);
-  return { from: toBackendDate(from), to: toBackendDate(to) };
+  const now = Date.now();
+  const from = new Date(now - preset.value * HOUR_MS);
+  if (preset.scale === 'd') {
+    from.setTime(now);
+    from.setDate(from.getDate() - preset.value);
+  }
+  return { from: toBackendDate(from), to: toBackendDate(new Date(now + HOUR_MS)) };
 }
 
 // The window last computed for a preset. Opening another dashboard shortly after

@@ -67,13 +67,12 @@ export default function EnergyDurations({ data }: { data: DowntimeData | undefin
             colors={colors}
             categoryGapRatio={0.6}
             valueAxis={{ min: 0, max: 100, label: '%' }}
-            elevation={0}
           />
         </Grid>
         <Grid size={{ md: 12, xs: 12, lg: 6 }}>
           <ScoreGauge title="Costs & Energy efficiency" value={energy.efficiency}>
             <Typography variant="body1" gutterBottom sx={{ p: 2 }}>
-              <strong>Cost & Energy effeciency</strong> is the ratio between net run and total costs
+              <strong>Cost & energy efficiency</strong> is the ratio between net run and total costs
             </Typography>
           </ScoreGauge>
         </Grid>

@@ -1,4 +1,9 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, type Shadows } from '@mui/material/styles';
+
+// Cards (elevation 1) share one soft shadow; higher elevations keep MUI's defaults
+// (menus, dialogs). Drawers and the app bar stay flat (elevation 0).
+const shadows = [...createTheme().shadows] as Shadows;
+shadows[1] = '0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.08)';
 
 // App-wide look: colors, fonts and layout sizes.
 // Components read these through the MUI theme (e.g. sx={{ color: 'primary.main' }}),
@@ -24,6 +29,7 @@ const theme = createTheme({
       dark: 'black',
     },
   },
+  shadows,
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
   },
