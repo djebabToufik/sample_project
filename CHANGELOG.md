@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0](https://github.com/djebabToufik/sample_project/compare/v0.1.0...v1.0.0) (2026-10-25)
+## [1.0.0](https://github.com/djebabToufik/sample_project/releases/tag/v1.0.0) (2026-10-25)
 
 
 ### Features
