@@ -1,18 +1,16 @@
 name: CI
 
-# Pull requests: lint and test the code, then build the images, scan them, run the stack
-# from them and push them as ghcr.io/<owner>/sample_project-<service>:tree-<hash>.
+# Pull requests: lint and test the code, then make sure an image exists for each service,
+# run the stack from them and smoke-test it.
 #
-# The tag is the git *tree* hash (the files, not the commit). Branches must be up to date
-# before merging, so the squash commit on main has the same tree as the tested merge, and
-# main.yml promotes these exact images instead of building them again.
+# Each image is tagged tree-<hash>, the git tree hash of its build folder (backend/ or
+# frontend/): the same files give the same tag. An image is only built, scanned and pushed
+# when no image exists yet for its folder, so a pull request that does not touch a folder
+# reuses that service's image. Branches must be up to date before merging, so main has the
+# same folders as the tested merge, and main.yml promotes these exact images.
 on:
   pull_request:
   workflow_call:
-    outputs:
-      image-tag:
-        description: Tag of the images built from this tree (tree-<hash>)
-        value: ${{ jobs.images.outputs.image-tag }}
 
 permissions:
   contents: read
@@ -108,26 +106,44 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      image-tag: ${{ steps.tag.outputs.tag }}
     env:
       # Pull requests from forks get a read-only token: build and test, but do not push.
       PUSH: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Image tag from the git tree
-        id: tag
-        run: echo "tag=tree-$(git rev-parse --short=12 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      - name: Log in to GitHub Container Registry
+        if: env.PUSH == 'true'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      - name: Image tags from the build folders
+        id: tags
+        run: |
+          for service in backend frontend; do
+            tag="tree-$(git rev-parse --short=12 "HEAD:$service")"
+            if docker buildx imagetools inspect "$IMAGE_PREFIX-$service:$tag" > /dev/null 2>&1; then
+              exists=true
+            else
+              exists=false
+            fi
+            echo "$service-tag=$tag" >> "$GITHUB_OUTPUT"
+            echo "$service-exists=$exists" >> "$GITHUB_OUTPUT"
+            echo "$service: $tag (already built: $exists)"
+          done
+
       - name: Build backend
+        if: steps.tags.outputs.backend-exists != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: backend
           load: true
-          tags: ${{ env.IMAGE_PREFIX }}-backend:${{ steps.tag.outputs.tag }}
+          tags: ${{ env.IMAGE_PREFIX }}-backend:${{ steps.tags.outputs.backend-tag }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -136,11 +152,12 @@ jobs:
           cache-to: type=gha,scope=backend,mode=max
 
       - name: Build frontend
+        if: steps.tags.outputs.frontend-exists != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: frontend
           load: true
-          tags: ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tag.outputs.tag }}
+          tags: ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tags.outputs.frontend-tag }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -148,28 +165,37 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
+      # Images that already exist were scanned when they were built.
       - name: Scan backend for critical vulnerabilities
+        if: steps.tags.outputs.backend-exists != 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.76.1
-          image-ref: ${{ env.IMAGE_PREFIX }}-backend:${{ steps.tag.outputs.tag }}
+          image-ref: ${{ env.IMAGE_PREFIX }}-backend:${{ steps.tags.outputs.backend-tag }}
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
 
       - name: Scan frontend for critical vulnerabilities
+        if: steps.tags.outputs.frontend-exists != 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.76.1
-          image-ref: ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tag.outputs.tag }}
+          image-ref: ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tags.outputs.frontend-tag }}
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
 
-      - name: Start the stack from the built images
+      # Always runs: the services are tested together, whether built here or reused.
+      - name: Start the stack from the images
         env:
-          OEE_IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          OEE_BACKEND_TAG: ${{ steps.tags.outputs.backend-tag }}
+          OEE_FRONTEND_TAG: ${{ steps.tags.outputs.frontend-tag }}
         run: |
+          # Reused images are only in the registry: pull them (compose does not for build services).
+          for image in "$IMAGE_PREFIX-backend:$OEE_BACKEND_TAG" "$IMAGE_PREFIX-frontend:$OEE_FRONTEND_TAG"; do
+            docker image inspect "$image" > /dev/null 2>&1 || docker pull --quiet "$image"
+          done
           cp .env.example .env
           sed -i 's/^DEMO=.*/DEMO=false/' .env
           docker compose up -d --no-build --wait --wait-timeout 180
@@ -181,28 +207,28 @@ jobs:
         if: failure()
         run: docker compose logs
 
-      - name: Log in to GitHub Container Registry
-        if: env.PUSH == 'true'
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push images
-        if: env.PUSH == 'true'
+      - name: Push new images
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
+          BACKEND: ${{ steps.tags.outputs.backend-tag }} ${{ steps.tags.outputs.backend-exists }}
+          FRONTEND: ${{ steps.tags.outputs.frontend-tag }} ${{ steps.tags.outputs.frontend-exists }}
         run: |
           {
-            echo "### Images pushed"
-            echo "Built, scanned and smoke-tested in this run. Merging promotes these exact images."
-            echo "| Image | Digest |"
-            echo "|---|---|"
+            echo "### Images"
+            echo "Smoke-tested together in this run. Merging promotes these exact images."
+            echo "| Image | | Digest |"
+            echo "|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
-          for service in backend frontend; do
-            image="$IMAGE_PREFIX-$service:$TAG"
-            docker push --quiet "$image"
-            digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$image")"
-            echo "| \`$image\` | \`${digest#*@}\` |" >> "$GITHUB_STEP_SUMMARY"
+          for entry in "backend $BACKEND" "frontend $FRONTEND"; do
+            read -r service tag exists <<< "$entry"
+            image="$IMAGE_PREFIX-$service:$tag"
+            if [ "$exists" = "true" ]; then
+              status="reused"
+            elif [ "$PUSH" = "true" ]; then
+              docker push --quiet "$image"
+              status="built and pushed"
+            else
+              status="built (fork: not pushed)"
+            fi
+            digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$image" 2> /dev/null || true)"
+            echo "| \`$image\` | $status | \`${digest#*@}\` |" >> "$GITHUB_STEP_SUMMARY"
           done

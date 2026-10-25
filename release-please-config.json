@@ -18,14 +18,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "package-name": "portfolio-oee-cmms",
-      "extra-files": [
-        { "type": "json", "path": "frontend/package.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "frontend/package-lock.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "frontend/package-lock.json", "jsonpath": "$.packages[''].version" },
-        { "type": "toml", "path": "backend/pyproject.toml", "jsonpath": "$.project.version" },
-        { "type": "toml", "path": "backend/uv.lock", "jsonpath": "$.package[?(@.name.value=='oee-backend')].version" }
-      ]
+      "package-name": "portfolio-oee-cmms"
     }
   }
 }
