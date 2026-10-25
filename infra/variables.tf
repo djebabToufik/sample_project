@@ -10,10 +10,14 @@ variable "domain" {
   default     = "demo.opensourceoeesoftware.com"
 }
 
-variable "github_repository" {
-  description = "owner/name of the repository allowed to deploy"
+variable "github_repository_subject" {
+  description = <<-EOT
+    The repository allowed to deploy, as GitHub writes it in its OIDC tokens:
+    owner@<owner id>/name@<repository id>. The ids never change, so a deleted and recreated
+    repository with the same name could not deploy.
+  EOT
   type        = string
-  default     = "djebabToufik/sample_project"
+  default     = "djebabToufik@25080514/sample_project@1432936171"
 }
 
 variable "instance_type" {
