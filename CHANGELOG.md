@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/djebabToufik/sample_project/compare/v1.0.5...v1.0.6) (2026-10-25)
+
+
+### Bug Fixes
+
+* **dashboards:** consistent units, readable labels and card shadows ([#17](https://github.com/djebabToufik/sample_project/issues/17)) ([dc7a284](https://github.com/djebabToufik/sample_project/commit/dc7a28487ad72cc3e483ca69da2b8e7a14a6e081))
+
 ## [1.0.5](https://github.com/djebabToufik/sample_project/compare/v1.0.4...v1.0.5) (2026-10-25)
 
 
