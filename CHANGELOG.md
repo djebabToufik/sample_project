@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/djebabToufik/sample_project/compare/v1.2.3...v1.2.4) (2026-10-25)
+
+
+### Build and CI
+
+* test coverage, Dependabot, CodeQL and a security policy ([#33](https://github.com/djebabToufik/sample_project/issues/33)) ([90e0913](https://github.com/djebabToufik/sample_project/commit/90e0913e473f96ac2d6a297a0e05df08b2f0c9d8))
+
 ## [1.2.3](https://github.com/djebabToufik/sample_project/compare/v1.2.2...v1.2.3) (2026-10-25)
 
 
