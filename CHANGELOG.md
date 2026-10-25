@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/djebabToufik/sample_project/compare/v1.0.0...v1.0.1) (2026-10-25)
+
+
+### Build and CI
+
+* keep image digests when promoting and list images in run summaries ([#7](https://github.com/djebabToufik/sample_project/issues/7)) ([331764c](https://github.com/djebabToufik/sample_project/commit/331764cdf54e02798c0f056997e37007ce17141e))
+
 ## [1.0.0](https://github.com/djebabToufik/sample_project/releases/tag/v1.0.0) (2026-10-25)
 
 
