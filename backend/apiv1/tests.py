@@ -66,8 +66,13 @@ class UserInvitationEmailTest(TestCase):
         self.assertIn("http://app.customer.com/invitation?uid=", mail.outbox[0].body)
 
     def test_failed_email_leaves_no_user_behind(self):
-        with mock.patch("users.invitations.send_mail", side_effect=OSError("SMTP down")):
+        with (
+            mock.patch("users.invitations.send_mail", side_effect=OSError("SMTP down")),
+            self.assertLogs("apiv1.views", level="ERROR") as logs,
+        ):
             response = self.invite()
+
+        self.assertIn("Invitation email could not be sent", logs.output[0])
 
         self.assertEqual(response.status_code, 400)
         self.assertFalse(User.objects.filter(username="bob").exists())

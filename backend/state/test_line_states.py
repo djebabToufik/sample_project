@@ -111,12 +111,14 @@ class LineStateApiTest(ApiTestCase):
     def test_a_time_before_the_last_event_comes_right_after_it(self):
         self.send('run', self.t0)
         last = Event.objects.filter(machine=self.line).latest('created_at').created_at
-        self.send('on', self.t0 - timedelta(hours=1))
+        with self.assertLogs('state.line_states', level='WARNING'):
+            self.send('on', self.t0 - timedelta(hours=1))
         self.assertEqual(self.events()[-1][:2], ('stop', last + STEP))
 
     def test_a_time_in_the_future_becomes_now(self):
         before = timezone.now()
-        self.send('run', timezone.now() + timedelta(hours=5))
+        with self.assertLogs('state.line_states', level='WARNING'):
+            self.send('run', timezone.now() + timedelta(hours=5))
         first, last = self.events()[-2][1], self.events()[-1][1]
         self.assertGreaterEqual(first, before)
         self.assertLessEqual(last, timezone.now() + STEP)
