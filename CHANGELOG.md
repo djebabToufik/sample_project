@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/djebabToufik/sample_project/compare/v1.2.2...v1.2.3) (2026-10-25)
+
+
+### Documentation
+
+* link the live demo and describe its infrastructure ([#31](https://github.com/djebabToufik/sample_project/issues/31)) ([77c4455](https://github.com/djebabToufik/sample_project/commit/77c4455a0f7891a32eb926c9a9fcbfd68c543fdf))
+
 ## [1.2.2](https://github.com/djebabToufik/sample_project/compare/v1.2.1...v1.2.2) (2026-10-25)
 
 
