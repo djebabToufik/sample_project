@@ -6,13 +6,19 @@ import { wsurl } from '../Config';
 export const reconnectDelay = (attempt: number) => Math.min(30_000, 1000 * 2 ** attempt);
 
 /**
+ * Close codes 4000-4999 are the server's refusals (4401 not logged in, 4403 line not allowed):
+ * retrying cannot help. Other closes (server restart, network loss) are worth a reconnect.
+ */
+export const isRefusal = (code: number) => code >= 4000 && code < 5000;
+
+/**
  * Live data of one line from a backend WebSocket channel (e.g. 'machine-oee').
  * Returns the latest message, or undefined until the first one arrives.
  *
  * - Opens `/ws/<channel>/?machine=…` (the browser sends the session cookie) and closes it
  *   when the page is left or the line changes.
  * - Reconnects after the connection drops (backend restart, network loss),
- *   waiting longer after each failed attempt.
+ *   waiting longer after each failed attempt; not after a refusal (see isRefusal).
  */
 export function useLiveSocket<T>(channel: string, machine: string | undefined): T | undefined {
   const [latest, setLatest] = useState<{ channel: string; machine: string; data: T }>();
@@ -37,8 +43,8 @@ export function useLiveSocket<T>(channel: string, machine: string | undefined): 
           // Not JSON: ignore the message.
         }
       };
-      socket.onclose = () => {
-        if (stopped) return;
+      socket.onclose = (event) => {
+        if (stopped || isRefusal(event.code)) return;
         timer = setTimeout(connect, reconnectDelay(attempt++));
       };
     };

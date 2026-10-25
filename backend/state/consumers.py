@@ -32,6 +32,13 @@ class UUIDEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+# Close codes of a refused connection (4000-4999: codes of the application). Refusing the handshake
+# itself would reach the browser as an anonymous failure, the same as a server that is down, and
+# the client would keep retrying; with these codes it knows that retrying cannot help.
+NOT_LOGGED_IN = 4401
+FORBIDDEN = 4403
+
+
 class LineConsumer(WebsocketConsumer):
     """Base: login and line checks, group membership. Subclasses build the message."""
 
@@ -39,7 +46,11 @@ class LineConsumer(WebsocketConsumer):
 
     def connect(self):
         # scope['user'] comes from the session cookie (AuthMiddlewareStack in asgi.py).
-        organization = get_organization(self.scope.get('user'))
+        user = self.scope.get('user')
+        if user is None or not user.is_authenticated:
+            self.refuse(NOT_LOGGED_IN)
+            return
+        organization = get_organization(user)
         query = parse_qs(self.scope.get('query_string', b'').decode())
         machine = self.line_uuid(query.get('machine', [None])[0])
         if (
@@ -47,7 +58,7 @@ class LineConsumer(WebsocketConsumer):
             or machine is None
             or not Asset.objects.filter(uuid=machine, organization=organization).exists()
         ):
-            self.close(code=1011)
+            self.refuse(FORBIDDEN)
             return
         self.organization_uuid = str(organization.uuid)
         self.machine_uuid = machine
@@ -55,6 +66,11 @@ class LineConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(self.room_group_name, self.channel_name)
         self.accept()
         self.send_message(initial=True)
+
+    def refuse(self, code):
+        """Accepts, then closes at once with `code`: the client reads the reason and stops retrying."""
+        self.accept()
+        self.close(code=code)
 
     def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
