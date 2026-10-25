@@ -62,6 +62,37 @@ title. Each image is **built once** and the same digest is promoted to release:
 Nightly, the full test suite runs and the current images are scanned again. Details in
 [`.github/workflows`](.github/workflows).
 
+## Design decisions
+
+**Build once, promote the same image.**
+Rebuilding at merge or release would produce an image nobody tested: base images and system
+packages change between builds even when the code does not. Here a released image is byte-for-byte
+the one that passed the tests, the scan and the smoke test, provable by its digest.
+Merges and releases take seconds instead of a full build, a rollback is just pointing to an older
+tag, and pull requests that don't touch a service reuse its image.
+*Trade-off:* branches must be up to date before merging (otherwise `main` could differ from what
+was tested), and the workflows carry more logic than "build on every push".
+
+**OEE computed from raw events.**
+Lines only store state changes; OEE, downtime and energy are computed from them for any period on
+request. There are no stored totals that could drift from the events, and a new report only needs a
+new calculation, not a data migration.
+*Trade-off:* long periods cost more to compute; at a larger scale they would need a cache or
+periodic snapshots.
+
+**Multi-tenancy in one database.**
+Every row belongs to an organization, and one shared view mixin (`OrganizationScopedMixin`) limits
+every API query to the user's organization; live WebSockets check the line the same way. One
+database is simple to run and to back up.
+*Trade-off:* a view that skipped the mixin would leak data, so the tests keep a second
+organization and check that its data stays out of reach.
+
+**Session cookies instead of JWT.**
+The browser keeps an HttpOnly session cookie that scripts cannot read, and logging out ends the
+session on the server at once. Machines use API tokens instead.
+*Trade-off:* every change needs a CSRF token, and the app must know its public origin
+(`OEE_CSRF_TRUSTED_ORIGINS`) when it runs behind another host or port.
+
 ## Development
 
 ```bash
