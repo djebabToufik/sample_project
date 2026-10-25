@@ -1,0 +1,40 @@
+[project]
+name = "oee-backend"
+version = "0.1.0"
+description = "Django backend (REST API and live WebSockets) of the OEE & CMMS software"
+requires-python = "==3.13.*"
+# Direct dependencies only; exact versions are in uv.lock.
+dependencies = [
+    "django>=5.2.8,<5.3",            # LTS until April 2028
+    "djangorestframework>=3.16",
+    "django-filter>=25.2",
+    "django-rest-passwordreset>=1.5",
+    "channels>=4.3",                 # WebSockets
+    "channels-redis>=4.3",
+    "redis>=6.4",                    # cache for the rate limits
+    "psycopg[binary]>=3.2",          # PostgreSQL driver
+    "pillow>=12",                    # image uploads
+    "openpyxl>=3.1",                 # demo data (populate_demo)
+    "gunicorn>=23",
+    "uvicorn[standard]>=0.38",
+    "uvicorn-worker>=0.4",           # gunicorn worker running the ASGI app
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ"]
+
+[tool.ruff.format]
+quote-style = "preserve"
