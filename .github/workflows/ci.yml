@@ -1,13 +1,28 @@
 name: CI
 
+# Pull requests: lint and test the code, then build the images, scan them, run the stack
+# from them and push them as ghcr.io/<owner>/sample_project-<service>:tree-<hash>.
+#
+# The tag is the git *tree* hash (the files, not the commit). Branches must be up to date
+# before merging, so the squash commit on main has the same tree as the tested merge, and
+# main.yml promotes these exact images instead of building them again.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call:
+    outputs:
+      image-tag:
+        description: Tag of the images built from this tree (tree-<hash>)
+        value: ${{ jobs.images.outputs.image-tag }}
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
+
+env:
+  IMAGE_PREFIX: ghcr.io/djebabtoufik/sample_project
 
 jobs:
   backend:
@@ -42,8 +57,8 @@ jobs:
       OEE_DB_PORT: "5432"
       OEE_REDIS_HOST: localhost
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: "0.11.16"
       - run: uv sync --frozen
@@ -63,8 +78,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -80,17 +95,102 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser tests
         run: npm test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report
           path: frontend/playwright-report
           retention-days: 7
 
-  docker:
-    name: Docker images build
+  images:
+    name: Docker images (build, scan, smoke test)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.tag.outputs.tag }}
+    env:
+      # Pull requests from forks get a read-only token: build and test, but do not push.
+      PUSH: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
-      - uses: actions/checkout@v4
-      - run: cp .env.example .env
-      - run: docker compose build
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Image tag from the git tree
+        id: tag
+        run: echo "tag=tree-$(git rev-parse --short=12 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build backend
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          load: true
+          tags: ${{ env.IMAGE_PREFIX }}-backend:${{ steps.tag.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=sample_project-backend
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build frontend
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: frontend
+          load: true
+          tags: ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tag.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=sample_project-frontend
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      - name: Scan backend for critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.1
+          image-ref: ${{ env.IMAGE_PREFIX }}-backend:${{ steps.tag.outputs.tag }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Scan frontend for critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.1
+          image-ref: ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tag.outputs.tag }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Start the stack from the built images
+        env:
+          OEE_IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          cp .env.example .env
+          sed -i 's/^DEMO=.*/DEMO=false/' .env
+          docker compose up -d --no-build --wait --wait-timeout 180
+
+      - name: Smoke test
+        run: .github/scripts/smoke-test.sh http://localhost
+
+      - name: Stack logs
+        if: failure()
+        run: docker compose logs
+
+      - name: Log in to GitHub Container Registry
+        if: env.PUSH == 'true'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images
+        if: env.PUSH == 'true'
+        run: |
+          docker push "$IMAGE_PREFIX-backend:${{ steps.tag.outputs.tag }}"
+          docker push "$IMAGE_PREFIX-frontend:${{ steps.tag.outputs.tag }}"
