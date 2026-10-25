@@ -1,30 +1,67 @@
 name: CI
 
-# Pull requests: lint and test the code, then make sure an image exists for each service,
-# run the stack from them and smoke-test it.
+# Pull requests: test what changed, make sure an image exists for each service, run the
+# stack from them and smoke-test it.
 #
 # Each image is tagged tree-<hash>, the git tree hash of its build folder (backend/ or
 # frontend/): the same files give the same tag. An image is only built, scanned and pushed
 # when no image exists yet for its folder, so a pull request that does not touch a folder
 # reuses that service's image. Branches must be up to date before merging, so main has the
 # same folders as the tested merge, and main.yml promotes these exact images.
+#
+# Jobs whose files did not change are skipped (a skipped job passes a required check), e.g.
+# a release PR only changes CHANGELOG.md and runs nothing. Every night everything runs on
+# main: all tests, and a scan of the current images against the latest vulnerability data.
 on:
   pull_request:
   workflow_call:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.sha }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 env:
   IMAGE_PREFIX: ghcr.io/djebabtoufik/sample_project
 
 jobs:
+  changes:
+    name: Changed parts
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.diff.outputs.backend }}
+      frontend: ${{ steps.diff.outputs.frontend }}
+      images: ${{ steps.diff.outputs.images }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - name: Compare with the base branch
+        id: diff
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            # Nightly, manual, or called from main.yml: run everything.
+            for part in backend frontend images; do echo "$part=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+          # The checkout is the PR merged into its base: HEAD^1 is the base branch.
+          changed="$(git diff --name-only HEAD^1 HEAD)"
+          echo "$changed"
+          has() { grep -qE "$1" <<< "$changed" && echo true || echo false; }
+          ci='^\.github/workflows/ci\.yml$'
+          echo "backend=$(has "^backend/|$ci")" >> "$GITHUB_OUTPUT"
+          echo "frontend=$(has "^frontend/|$ci")" >> "$GITHUB_OUTPUT"
+          echo "images=$(has "^backend/|^frontend/|^docker-compose\.yaml$|^\.env\.example$|^\.github/scripts/|$ci")" >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend (lint, migrations, tests)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -71,6 +108,8 @@ jobs:
 
   frontend:
     name: Frontend (lint, types, build, browser tests)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -102,6 +141,8 @@ jobs:
 
   images:
     name: Docker images (build, scan, smoke test)
+    needs: changes
+    if: needs.changes.outputs.images == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -165,9 +206,9 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
-      # Images that already exist were scanned when they were built.
+      # Images that already exist were scanned when they were built, and are scanned again nightly.
       - name: Scan backend for critical vulnerabilities
-        if: steps.tags.outputs.backend-exists != 'true'
+        if: steps.tags.outputs.backend-exists != 'true' || github.event_name == 'schedule'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.76.1
@@ -177,7 +218,7 @@ jobs:
           exit-code: "1"
 
       - name: Scan frontend for critical vulnerabilities
-        if: steps.tags.outputs.frontend-exists != 'true'
+        if: steps.tags.outputs.frontend-exists != 'true' || github.event_name == 'schedule'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.76.1
