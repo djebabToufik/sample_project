@@ -20,6 +20,8 @@ dependencies = [
     "gunicorn>=23",
     "uvicorn[standard]>=0.38",
     "uvicorn-worker>=0.4",           # gunicorn worker running the ASGI app
+    "drf-spectacular>=0.30",
+    "drf-spectacular-sidecar>=2026.1",
 ]
 
 [dependency-groups]

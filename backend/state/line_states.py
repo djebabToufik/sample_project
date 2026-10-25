@@ -34,6 +34,8 @@ MACHINE_STATES = {
     'run': frozenset({'on', 'run'}),
     'fault': frozenset({'on', 'run', 'fault'}),
 }
+# The states other software can send (POST /api/line-states/).
+MACHINE_STATE_NAMES = list(MACHINE_STATES)
 
 # The pair each pair is nested in: a line runs only while it is on, a fault happens while it runs.
 PARENT = {'run': 'on', 'failure': 'on', 'break out': 'on', 'fault': 'run', 'break in': 'run'}

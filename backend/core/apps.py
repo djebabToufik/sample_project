@@ -9,4 +9,8 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         # Registers the system checks (python manage.py check).
-        from . import checks  # noqa: F401
+        # Describes the session login in the API documentation.
+        from . import (
+            checks,  # noqa: F401
+            schema,  # noqa: F401
+        )

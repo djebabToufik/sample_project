@@ -30,6 +30,21 @@ EVENT_STATES = (
 )
 
 
+# Named, so the API documentation gives each its own name (settings.SPECTACULAR_SETTINGS).
+ASSET_STATUSES = [
+    ('Active', 'Active'),
+    ('Inactive', 'Inactive'),
+    ('Under Maintenance', 'Under Maintenance'),
+    ('Retired', 'Retired'),
+]
+MAINTENANCE_STATUSES = [
+    ('Pending', 'Pending'),
+    ('In Progress', 'In Progress'),
+    ('Completed', 'Completed'),
+    ('Cancelled', 'Cancelled'),
+]
+
+
 class BasicInfo(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(default=timezone.now)
@@ -106,12 +121,7 @@ class Asset(models.Model):
     status = models.CharField(
         max_length=50,
         default='Active',
-        choices=[
-            ('Active', 'Active'),
-            ('Inactive', 'Inactive'),
-            ('Under Maintenance', 'Under Maintenance'),
-            ('Retired', 'Retired'),
-        ],
+        choices=ASSET_STATUSES,
     )
     state = models.CharField(max_length=50, choices=EVENT_STATES, default='', blank=True)
 
@@ -150,12 +160,7 @@ class MaintenancePlan(BasicInfo):
     status = models.CharField(
         max_length=50,
         default='Pending',
-        choices=[
-            ('Pending', 'Pending'),
-            ('In Progress', 'In Progress'),
-            ('Completed', 'Completed'),
-            ('Cancelled', 'Cancelled'),
-        ],
+        choices=MAINTENANCE_STATUSES,
     )
     estimated_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 

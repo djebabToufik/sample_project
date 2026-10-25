@@ -9,6 +9,7 @@ from django_rest_passwordreset.views import (
     ResetPasswordRequestToken,
     ResetPasswordValidateToken,
 )
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -18,7 +19,14 @@ from rest_framework.views import APIView
 from apiv1.serializers import UserProfileSerializer
 from core.authentication import SessionAuthentication
 from core.organization import get_profile, is_demo_account
+from core.schema import DetailSerializer
 
+from .schema import (
+    InvitationInfoSerializer,
+    PasswordChangedSerializer,
+    PublicSettingsSerializer,
+    SessionSerializer,
+)
 from .serializers import (
     AcceptInvitationSerializer,
     ChangePasswordSerializer,
@@ -47,6 +55,7 @@ class SessionView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: SessionSerializer, 401: DetailSerializer})
     def get(self, request):
         return Response(session_body(request))
 
@@ -60,6 +69,7 @@ class LoginView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'login'
 
+    @extend_schema(request=LoginSerializer, responses={200: SessionSerializer, 400: DetailSerializer})
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -76,6 +86,7 @@ class LogoutView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(request=None, responses={204: None})
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -89,6 +100,7 @@ class InvitationView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'invitation'
 
+    @extend_schema(parameters=[InvitationSerializer], responses={200: InvitationInfoSerializer, 400: None})
     def get(self, request):
         serializer = InvitationSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -111,6 +123,7 @@ class AcceptInvitationView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'invitation'
 
+    @extend_schema(request=AcceptInvitationSerializer, responses={200: SessionSerializer, 400: None})
     def post(self, request):
         serializer = AcceptInvitationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -125,6 +138,7 @@ class PublicSettingsView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
+    @extend_schema(responses=PublicSettingsSerializer)
     def get(self, request):
         body = {'signup': settings.ALLOW_SIGNUP}
         if settings.DEMO_USERNAME and settings.DEMO_PASSWORD:
@@ -151,6 +165,7 @@ class ChangePassword(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: PasswordChangedSerializer, 400: None, 403: DetailSerializer})
     def post(self, request):
         if is_demo_account(request.user):
             return Response({'detail': DEMO_ACCOUNT_LOCKED}, status=status.HTTP_403_FORBIDDEN)

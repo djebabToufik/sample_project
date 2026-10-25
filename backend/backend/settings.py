@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'django_filters',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',  # Swagger UI files served by this app, no CDN
     'django_rest_passwordreset',
     'core',
     'db',
@@ -230,6 +232,8 @@ REST_FRAMEWORK = {
         else ['rest_framework.renderers.JSONRenderer']
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    # OpenAPI schema of the API (/api/schema/), documented at /api/docs/.
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     # Rate limits of the public endpoints, per client IP (views set throttle_scope).
     'DEFAULT_THROTTLE_RATES': {
         'login': os.getenv('OEE_THROTTLE_LOGIN', '20/min'),
@@ -247,6 +251,27 @@ REST_FRAMEWORK = {
     },
     # Proxies in front of the backend (nginx = 1): the client IP is taken from X-Forwarded-For.
     'NUM_PROXIES': int(os.getenv('OEE_NUM_PROXIES', '1')),
+}
+
+# API documentation (drf-spectacular): /api/schema/ (OpenAPI 3) and /api/docs/ (Swagger UI).
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'OEE & CMMS API',
+    'DESCRIPTION': (
+        'REST API of the OEE & CMMS platform. The web app authenticates with a session cookie '
+        '(changes need the X-CSRFToken header); other software sends an API token '
+        '(Authorization: Token <key>). Every endpoint returns data of the organization of the caller only.'
+    ),
+    'VERSION': None,
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'ENUM_NAME_OVERRIDES': {
+        'AssetStatusEnum': 'db.models.ASSET_STATUSES',
+        'MaintenanceStatusEnum': 'db.models.MAINTENANCE_STATUSES',
+        'EventStateEnum': 'db.models.EVENT_STATES',
+        'MachineStateEnum': 'state.line_states.MACHINE_STATE_NAMES',
+    },
 }
 
 # Password reset answers the same whether or not the email has an account.
