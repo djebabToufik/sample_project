@@ -11,6 +11,8 @@ from django.db import transaction
 from django.db.models import ProtectedError
 from django.http import Http404, HttpResponse
 from django.utils.encoding import iri_to_uri
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -26,6 +28,7 @@ from core.permissions import (
     IsAdminOrReadOnly,
     IsOrganizationAdmin,
 )
+from core.schema import DetailSerializer
 from db.models import Asset, MaintenancePlan, UserProfile
 from users.invitations import is_pending, send_invitation
 
@@ -230,6 +233,16 @@ class UserProfileViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# Protected file downloads: a session of the organization, or the signed link the API gives out.
+FILE_DOWNLOAD_SCHEMA = extend_schema(
+    parameters=[
+        OpenApiParameter('token', str, required=False, description='Signed link token (in the URLs the API returns).')
+    ],
+    responses={(200, '*/*'): OpenApiTypes.BINARY, 403: DetailSerializer, 404: None},
+)
+
+
+@FILE_DOWNLOAD_SCHEMA
 class AssetPhotoView(APIView):
     """An asset photo, for members of its organization or with a signed link (see serializers)."""
 
@@ -257,6 +270,7 @@ class AssetPhotoView(APIView):
         return protected_file_response(asset.photo.name)
 
 
+@FILE_DOWNLOAD_SCHEMA
 class MaintenanceInstructionsView(APIView):
     """A plan's instructions file, for members of its organization or with a signed link."""
 

@@ -7,7 +7,7 @@ from core.fields import OrganizationPrimaryKeyRelatedField
 from core.organization import get_organization
 from db.models import Asset
 
-from .line_states import MACHINE_STATES
+from .line_states import MACHINE_STATE_NAMES
 from .models import Cell, Event, MachineFault, Product
 
 
@@ -196,5 +196,5 @@ class LineStateSerializer(serializers.Serializer):
     """POST /api/line-states/: the state a line's machine is in, and since when (default: now)."""
 
     machine = line_field()
-    state = serializers.ChoiceField(choices=list(MACHINE_STATES))
+    state = serializers.ChoiceField(choices=MACHINE_STATE_NAMES)
     occurred_at = serializers.DateTimeField(required=False)

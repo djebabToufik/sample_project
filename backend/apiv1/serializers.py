@@ -63,7 +63,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields += ['invitation_pending']
         read_only_fields = ['uuid', 'created_at', 'updated_at']
 
-    def get_invitation_pending(self, profile):
+    def get_invitation_pending(self, profile) -> bool:
         return profile.user is not None and not profile.user.has_usable_password()
 
     def validate_type(self, value):

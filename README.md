@@ -36,6 +36,9 @@ from `.env`. A demo plant with events and maintenance plans is created on first 
 - **Secure defaults.** Session cookies with CSRF, invitation links instead of passwords, rate limits,
   uploaded files served only after an access check (`X-Accel-Redirect`).
 - **Machine API.** Line software posts state changes with an API token.
+- **Documented API.** OpenAPI schema generated from the code, browsable with Swagger UI at
+  `/api/docs/` ([live](https://demo.opensourceoeesoftware.com/api/docs/)); CI fails if an endpoint is
+  left undocumented.
 
 | Downtimes | Maintenance plans |
 |---|---|
