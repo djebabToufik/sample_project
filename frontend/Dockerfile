@@ -1,5 +1,5 @@
 # --- Build stage: compile the React app ------------------------------------------------------------
-FROM node:22.14.0 AS build
+FROM node:22.23.4 AS build
 
 WORKDIR /app
 COPY package*.json ./
