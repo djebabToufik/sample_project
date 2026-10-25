@@ -1,10 +1,11 @@
 name: Main
 
-# After a merge to main: no rebuild. The pull request already built, scanned and tested the
-# images of this exact tree (ci.yml), so they are only retagged:
-#   tree-<hash>  ->  sha-<commit>, main            on every merge
-#   tree-<hash>  ->  <version>, <major.minor>, latest   when a release is published
-# If no image exists for the tree (e.g. a push that skipped the pull request), CI runs here first.
+# After a merge to main: no rebuild. Pull requests already built, scanned and tested an image
+# for each build folder (ci.yml: tree-<hash of backend/ or frontend/>), so they are retagged:
+#   tree-<hash>  ->  sha-<commit>, main                  on every merge
+#   tree-<hash>  ->  <version>, <major.minor>, latest    when a release is published
+# A release only changes CHANGELOG.md and the manifest, so it reuses the images of the last
+# merge. If an image is missing (e.g. a push that skipped the pull request), CI runs here first.
 #
 # release-please opens or updates the release PR (next version and CHANGELOG.md from the
 # Conventional Commit titles). Merging that PR tags the release and publishes it on GitHub.
@@ -21,7 +22,6 @@ concurrency:
 
 env:
   IMAGE_PREFIX: ghcr.io/djebabtoufik/sample_project
-  SERVICES: backend frontend
 
 jobs:
   find-images:
@@ -31,7 +31,8 @@ jobs:
       contents: read
       packages: read
     outputs:
-      tag: ${{ steps.find.outputs.tag }}
+      backend-tag: ${{ steps.find.outputs.backend-tag }}
+      frontend-tag: ${{ steps.find.outputs.frontend-tag }}
       found: ${{ steps.find.outputs.found }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,18 +41,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Look up images for this tree
+      - name: Look up the image of each build folder
         id: find
         run: |
-          tag="tree-$(git rev-parse --short=12 'HEAD^{tree}')"
           found=true
-          for service in $SERVICES; do
+          for service in backend frontend; do
+            tag="tree-$(git rev-parse --short=12 "HEAD:$service")"
             if ! docker buildx imagetools inspect "$IMAGE_PREFIX-$service:$tag" > /dev/null 2>&1; then
               echo "::warning::No image $IMAGE_PREFIX-$service:$tag yet: building it here."
               found=false
             fi
+            echo "$service-tag=$tag" >> "$GITHUB_OUTPUT"
           done
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "found=$found" >> "$GITHUB_OUTPUT"
 
   build:
@@ -79,14 +80,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Add sha and main tags
         env:
-          TAG: ${{ needs.find-images.outputs.tag }}
+          BACKEND_TAG: ${{ needs.find-images.outputs.backend-tag }}
+          FRONTEND_TAG: ${{ needs.find-images.outputs.frontend-tag }}
         run: |
           {
             echo "### Images promoted for main"
             echo "| Image | Tags | Digest |"
             echo "|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
-          for service in $SERVICES; do
+          for entry in "backend $BACKEND_TAG" "frontend $FRONTEND_TAG"; do
+            read -r service TAG <<< "$entry"
             image="$IMAGE_PREFIX-$service"
             # Exact copy of the tested manifest inside the registry: same digest, nothing rebuilt.
             # (Without --prefer-index=false, buildx wraps it in a new index with another digest.)
@@ -132,7 +135,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Add version tags
         env:
-          TAG: ${{ needs.find-images.outputs.tag }}
+          BACKEND_TAG: ${{ needs.find-images.outputs.backend-tag }}
+          FRONTEND_TAG: ${{ needs.find-images.outputs.frontend-tag }}
           VERSION: ${{ needs.release-please.outputs.version }}
           MINOR: ${{ needs.release-please.outputs.major }}.${{ needs.release-please.outputs.minor }}
         run: |
@@ -141,7 +145,8 @@ jobs:
             echo "| Image | Tags | Digest |"
             echo "|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
-          for service in $SERVICES; do
+          for entry in "backend $BACKEND_TAG" "frontend $FRONTEND_TAG"; do
+            read -r service TAG <<< "$entry"
             image="$IMAGE_PREFIX-$service"
             docker buildx imagetools create --prefer-index=false \
               -t "$image:$VERSION" -t "$image:$MINOR" -t "$image:latest" "$image:$TAG"
