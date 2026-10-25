@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/djebabToufik/sample_project/compare/v1.0.2...v1.0.3) (2026-10-25)
+
+
+### Build and CI
+
+* skip the jobs whose files a pull request does not change ([#11](https://github.com/djebabToufik/sample_project/issues/11)) ([204cdf6](https://github.com/djebabToufik/sample_project/commit/204cdf63b454a2b4c6e968e27165f006b4d8f395))
+
 ## [1.0.2](https://github.com/djebabToufik/sample_project/compare/v1.0.1...v1.0.2) (2026-10-25)
 
 
