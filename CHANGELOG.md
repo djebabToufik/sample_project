@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/djebabToufik/sample_project/compare/v1.1.0...v1.2.0) (2026-10-25)
+
+
+### Features
+
+* **demo:** public demo on AWS, deployed on every release ([#25](https://github.com/djebabToufik/sample_project/issues/25)) ([98b2667](https://github.com/djebabToufik/sample_project/commit/98b2667ee150e89a3c8d97dad937c006377b14a9))
+
 ## [1.1.0](https://github.com/djebabToufik/sample_project/compare/v1.0.8...v1.1.0) (2026-10-25)
 
 
