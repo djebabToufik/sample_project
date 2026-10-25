@@ -191,6 +191,18 @@ jobs:
 
       - name: Push images
         if: env.PUSH == 'true'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          docker push "$IMAGE_PREFIX-backend:${{ steps.tag.outputs.tag }}"
-          docker push "$IMAGE_PREFIX-frontend:${{ steps.tag.outputs.tag }}"
+          {
+            echo "### Images pushed"
+            echo "Built, scanned and smoke-tested in this run. Merging promotes these exact images."
+            echo "| Image | Digest |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for service in backend frontend; do
+            image="$IMAGE_PREFIX-$service:$TAG"
+            docker push --quiet "$image"
+            digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$image")"
+            echo "| \`$image\` | \`${digest#*@}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done

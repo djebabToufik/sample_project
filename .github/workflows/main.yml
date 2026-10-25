@@ -81,10 +81,19 @@ jobs:
         env:
           TAG: ${{ needs.find-images.outputs.tag }}
         run: |
+          {
+            echo "### Images promoted for main"
+            echo "| Image | Tags | Digest |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
           for service in $SERVICES; do
             image="$IMAGE_PREFIX-$service"
-            # Copies the manifest inside the registry: same digest, nothing is pulled or rebuilt.
-            docker buildx imagetools create -t "$image:sha-${GITHUB_SHA::7}" -t "$image:main" "$image:$TAG"
+            # Exact copy of the tested manifest inside the registry: same digest, nothing rebuilt.
+            # (Without --prefer-index=false, buildx wraps it in a new index with another digest.)
+            docker buildx imagetools create --prefer-index=false \
+              -t "$image:sha-${GITHUB_SHA::7}" -t "$image:main" "$image:$TAG"
+            digest="$(docker buildx imagetools inspect "$image:main" --format '{{.Manifest.Digest}}')"
+            echo "| \`$image\` | \`$TAG\` \`sha-${GITHUB_SHA::7}\` \`main\` | \`$digest\` |" >> "$GITHUB_STEP_SUMMARY"
           done
 
   release-please:
@@ -127,8 +136,16 @@ jobs:
           VERSION: ${{ needs.release-please.outputs.version }}
           MINOR: ${{ needs.release-please.outputs.major }}.${{ needs.release-please.outputs.minor }}
         run: |
+          {
+            echo "### Release $VERSION images"
+            echo "| Image | Tags | Digest |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
           for service in $SERVICES; do
             image="$IMAGE_PREFIX-$service"
-            docker buildx imagetools create -t "$image:$VERSION" -t "$image:$MINOR" -t "$image:latest" "$image:$TAG"
-            echo "$image:$VERSION" >> "$GITHUB_STEP_SUMMARY"
+            docker buildx imagetools create --prefer-index=false \
+              -t "$image:$VERSION" -t "$image:$MINOR" -t "$image:latest" "$image:$TAG"
+            digest="$(docker buildx imagetools inspect "$image:$VERSION" --format '{{.Manifest.Digest}}')"
+            echo "| \`$image\` | \`$VERSION\` \`$MINOR\` \`latest\` | \`$digest\` |" >> "$GITHUB_STEP_SUMMARY"
           done
+          echo "Run it: \`OEE_IMAGE_TAG=$VERSION docker compose up --no-build\`" >> "$GITHUB_STEP_SUMMARY"
