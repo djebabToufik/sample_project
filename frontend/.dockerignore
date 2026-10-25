@@ -1,0 +1,21 @@
+node_modules
+build
+dist
+npm-debug.log
+.DS_Store
+# Secrets never go into the image (settings come from the environment at runtime).
+**/.env
+**/.env.*
+**/*.env
+.git
+.vscode
+.idea
+coverage
+
+# Mac/Windows
+Thumbs.db
+*.log
+
+# optional
+Dockerfile
+docker-compose.yml

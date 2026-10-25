@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.git
+
+# Secrets never go into the image: settings come from env_file / environment at
+# runtime (see docker-compose*.yaml). A published image is readable by anyone.
+**/.env
+**/.env.*
+**/*.env
+
+# Local virtualenv and tool caches
+.venv
+.ruff_cache

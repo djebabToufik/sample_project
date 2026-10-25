@@ -1,0 +1,65 @@
+# Whole stack on http://localhost: Postgres, Redis, Django (REST + WebSockets) and nginx serving React.
+# Settings come from .env (copy .env.example).
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${OEE_DB_NAME}
+      POSTGRES_USER: ${OEE_DB_USER}
+      POSTGRES_PASSWORD: ${OEE_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OEE_DB_HOST: db
+      OEE_REDIS_HOST: redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - static:/app/staticapi
+      - media:/app/media
+    healthcheck:
+      test: ["CMD", "python", "/app/healthcheck.py"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build: frontend
+    restart: unless-stopped
+    ports:
+      - "${OEE_HTTP_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - static:/backend/staticapi:ro
+      - media:/backend/media:ro
+
+volumes:
+  pgdata:
+  static:
+  media:
