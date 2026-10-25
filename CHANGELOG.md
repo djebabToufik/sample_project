@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/djebabToufik/sample_project/compare/v1.3.0...v1.3.1) (2026-10-25)
+
+
+### Build and CI
+
+* **deps:** bump node from 22.14.0 to 22.23.4 in /frontend in the base-images group across 1 directory ([#47](https://github.com/djebabToufik/sample_project/issues/47)) ([2e25974](https://github.com/djebabToufik/sample_project/commit/2e259749ff91c0b3e9bb2a272e50234a19b9175a))
+
 ## [1.3.0](https://github.com/djebabToufik/sample_project/compare/v1.2.5...v1.3.0) (2026-10-25)
 
 
