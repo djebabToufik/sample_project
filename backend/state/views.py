@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,6 +16,7 @@ from db.models import Asset
 
 from .line_states import record_machine_state
 from .models import Cell, Event, MachineFault, Product
+from .schema import DowntimeSerializer, LineStateResultSerializer
 from .serializers import (
     AssetEventSerializer,
     CellSerializer,
@@ -82,6 +84,7 @@ class DowntimeViewSet(OrganizationScopedMixin, viewsets.GenericViewSet):
     )
     organization_lookup = 'machine__organization'
 
+    @extend_schema(parameters=[DowntimeQuerySerializer], responses=DowntimeSerializer)
     def list(self, request):
         query = DowntimeQuerySerializer(data=request.query_params, context=self.get_serializer_context())
         query.is_valid(raise_exception=True)
@@ -173,6 +176,9 @@ class LineStateView(APIView):
 
     permission_classes = [IsOtherSoftware]
 
+    @extend_schema(
+        request=LineStateSerializer, responses={200: LineStateResultSerializer, 201: LineStateResultSerializer}
+    )
     def post(self, request):
         serializer = LineStateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)

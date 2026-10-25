@@ -108,6 +108,8 @@ jobs:
         run: uv run ruff format --check .
       - name: Migrations are up to date
         run: uv run python manage.py makemigrations --check --dry-run
+      - name: API documentation is complete (no schema warnings)
+        run: uv run python manage.py spectacular --validate --fail-on-warn --file /dev/null
       - name: Tests with coverage (at least 90 %, pyproject.toml)
         run: |
           uv run coverage run manage.py test
