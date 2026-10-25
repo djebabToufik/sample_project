@@ -1,0 +1,28 @@
+name: Release
+
+# On every push to main, release-please opens or updates a release PR with the next version
+# (from the Conventional Commit titles) and CHANGELOG.md. Merging that PR tags the release
+# and publishes it on GitHub.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release PR and GitHub release
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          # A personal access token lets CI run on the release PR (required checks).
+          # With the default token, GitHub does not start workflows for the PRs it opens.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
