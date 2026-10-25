@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5](https://github.com/djebabToufik/sample_project/compare/v1.2.4...v1.2.5) (2026-10-25)
+
+
+### Build and CI
+
+* **deps:** upgrade major versions on purpose, group ESLint ([#45](https://github.com/djebabToufik/sample_project/issues/45)) ([cce45f8](https://github.com/djebabToufik/sample_project/commit/cce45f89bd4ff5601ca73c4fcefe5da726bc77ce))
+
 ## [1.2.4](https://github.com/djebabToufik/sample_project/compare/v1.2.3...v1.2.4) (2026-10-25)
 
 
