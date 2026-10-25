@@ -13,14 +13,14 @@ from django.http import Http404, HttpResponse
 from django.utils.encoding import iri_to_uri
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import SAFE_METHODS, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.exceptions import PlanLimitReached
 from core.mixins import OrganizationScopedMixin
-from core.organization import get_organization, is_admin
+from core.organization import get_organization, is_admin, is_demo_account
 from core.permissions import (
     CanUpdateAssignedMaintenance,
     IsAdminOrReadOnly,
@@ -216,6 +216,11 @@ class UserProfileViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response({"detail": "Invitation sent."})
+
+    def perform_update(self, serializer):
+        if is_demo_account(self.request.user) and serializer.instance.user_id == self.request.user.id:
+            raise PermissionDenied('The demo account cannot be changed: it is shared by every visitor.')
+        serializer.save()
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

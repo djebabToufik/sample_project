@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 
 import { useAuth } from '../../auth/AuthContext';
 import { SignInError, type SignInFailure } from '../../auth/authApi';
+import { usePublicSettings } from '../../auth/usePublicSettings';
 import { useSignupOpen } from '../../auth/useSignupOpen';
 import AuthCard from '../AuthCard';
 import AuthField from '../AuthField';
@@ -18,6 +19,7 @@ const failureText: Record<SignInFailure, string> = {
 export default function Login() {
   const { login } = useAuth();
   const signupOpen = useSignupOpen();
+  const demo = usePublicSettings()?.demo;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const signIn = useMutation({ mutationFn: () => login(username, password) });
@@ -26,6 +28,28 @@ export default function Login() {
 
   return (
     <AuthCard title="Login" loading={signIn.isPending} onSubmit={() => signIn.mutate()}>
+      {demo && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          aria-label="Demo account"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setUsername(demo.username);
+                setPassword(demo.password);
+              }}
+            >
+              Fill in
+            </Button>
+          }
+        >
+          Public demo: username <strong>{demo.username}</strong>, password <strong>{demo.password}</strong>.
+          The data is reset every night.
+        </Alert>
+      )}
       {failure && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {failureText[failure]}

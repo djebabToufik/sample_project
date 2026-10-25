@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 
 from apiv1.serializers import UserProfileSerializer
 from core.authentication import SessionAuthentication
-from core.organization import get_profile
+from core.organization import get_profile, is_demo_account
 
 from .serializers import (
     AcceptInvitationSerializer,
@@ -126,7 +126,10 @@ class PublicSettingsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return Response({'signup': settings.ALLOW_SIGNUP})
+        body = {'signup': settings.ALLOW_SIGNUP}
+        if settings.DEMO_USERNAME and settings.DEMO_PASSWORD:
+            body['demo'] = {'username': settings.DEMO_USERNAME, 'password': settings.DEMO_PASSWORD}
+        return Response(body)
 
 
 class SignupView(generics.CreateAPIView):
@@ -139,6 +142,9 @@ class SignupView(generics.CreateAPIView):
     throttle_scope = 'signup'
 
 
+DEMO_ACCOUNT_LOCKED = 'The demo account cannot be changed: it is shared by every visitor.'
+
+
 class ChangePassword(generics.GenericAPIView):
     """Change the own password. Other sessions of the user end; the current one stays logged in."""
 
@@ -146,6 +152,8 @@ class ChangePassword(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if is_demo_account(request.user):
+            return Response({'detail': DEMO_ACCOUNT_LOCKED}, status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()

@@ -133,6 +133,12 @@ if REDIS_HOST:
 # Turn off for installations where only invited users get in.
 ALLOW_SIGNUP = env_bool('OEE_ALLOW_SIGNUP', True)
 
+# Public demo: populate_demo creates this account (an administrator of the demo plant, without
+# access to Django's admin), the login page shows its credentials, and it cannot change its own
+# password or profile. Leave empty everywhere else.
+DEMO_USERNAME = os.getenv('OEE_DEMO_USERNAME', '')
+DEMO_PASSWORD = os.getenv('OEE_DEMO_PASSWORD', '')
+
 # Largest accepted upload (photos, instruction PDFs). Keep nginx's client_max_body_size in line.
 MAX_UPLOAD_SIZE_MB = int(os.getenv('OEE_MAX_UPLOAD_MB', '5'))
 

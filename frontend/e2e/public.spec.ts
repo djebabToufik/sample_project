@@ -142,3 +142,23 @@ test('with sign-up closed there is no Register link, and the page says why', asy
   await expect(page.getByText('Sign-up is closed')).toBeVisible();
   await expect(page.getByLabel('Username')).toHaveCount(0);
 });
+
+test('a public demo shows its account on the login page and fills it in', async ({ page, backend }) => {
+  backend.json('GET', /^\/api\/auth\/settings\/$/, {
+    signup: false,
+    demo: { username: 'demo', password: 'demo-pass' },
+  });
+  await page.goto('/');
+  const hint = page.getByLabel('Demo account');
+  await expect(hint).toContainText('username demo, password demo-pass');
+
+  await hint.getByRole('button', { name: 'Fill in' }).click();
+  await expect(page.locator('input[name="username"]')).toHaveValue('demo');
+  await expect(page.locator('input[name="password"]')).toHaveValue('demo-pass');
+});
+
+test('without a demo account the login page shows no demo hint', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+  await expect(page.getByLabel('Demo account')).toHaveCount(0);
+});

@@ -115,6 +115,8 @@ export const confirmPasswordReset = (token: string, password: string) =>
 export interface PublicSettings {
   /** Sign-up open (backend OEE_ALLOW_SIGNUP) */
   signup: boolean;
+  /** Public demo only: the shared demo account, shown on the login page */
+  demo?: { username: string; password: string };
 }
 
 export const fetchPublicSettings = async () => (await api.get<PublicSettings>('/api/auth/settings/')).data;
