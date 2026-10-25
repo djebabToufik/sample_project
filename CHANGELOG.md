@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/djebabToufik/sample_project/compare/v1.0.1...v1.0.2) (2026-10-25)
+
+
+### Build and CI
+
+* tag images per build folder so releases reuse tested images ([#9](https://github.com/djebabToufik/sample_project/issues/9)) ([fd3ee0f](https://github.com/djebabToufik/sample_project/commit/fd3ee0f56993cb1759e28e4bf0ac3af6b4ee6f1e))
+
 ## [1.0.1](https://github.com/djebabToufik/sample_project/compare/v1.0.0...v1.0.1) (2026-10-25)
 
 
