@@ -154,3 +154,14 @@ jobs:
             echo "| \`$image\` | \`$VERSION\` \`$MINOR\` \`latest\` | \`$digest\` |" >> "$GITHUB_STEP_SUMMARY"
           done
           echo "Run it: \`OEE_IMAGE_TAG=$VERSION docker compose up --no-build\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-demo:
+    name: Deploy the release to the public demo
+    needs: [publish-images, release-please]
+    if: always() && needs.publish-images.result == 'success'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-demo.yml
+    with:
+      version: ${{ needs.release-please.outputs.version }}

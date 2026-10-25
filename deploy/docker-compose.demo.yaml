@@ -1,0 +1,20 @@
+# Public demo (see infra/): Caddy in front of the stack, with HTTPS from Let's Encrypt.
+# Used together with docker-compose.yaml: COMPOSE_FILE in the server's .env lists both files.
+services:
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      OEE_DOMAIN: ${OEE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live in a folder, not in a compose volume: the nightly reset (down --volumes)
+      # keeps them, so Let's Encrypt is not asked for a new one every night.
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    depends_on:
+      - frontend

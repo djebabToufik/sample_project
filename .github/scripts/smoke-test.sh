@@ -4,15 +4,16 @@
 #
 #   .github/scripts/smoke-test.sh [base-url]     (default http://localhost)
 #
-# Logs in with OEE_SUPERUSER_USERNAME / OEE_SUPERUSER_PASSWORD from .env.
+# Logs in with SMOKE_USERNAME / SMOKE_PASSWORD when set (e.g. the public demo account),
+# otherwise with OEE_SUPERUSER_USERNAME / OEE_SUPERUSER_PASSWORD from .env.
 set -euo pipefail
 
 BASE_URL="${1:-http://localhost}"
 
 # .env is read by Docker, not by a shell (values may contain spaces or "&"): only pick what is needed.
-env_value() { grep -E "^$1=" .env | tail -n 1 | cut -d= -f2- | tr -d '\r'; }
-OEE_SUPERUSER_USERNAME="$(env_value OEE_SUPERUSER_USERNAME)"
-OEE_SUPERUSER_PASSWORD="$(env_value OEE_SUPERUSER_PASSWORD)"
+env_value() { [ -f .env ] && grep -E "^$1=" .env | tail -n 1 | cut -d= -f2- | tr -d '\r'; }
+USERNAME="${SMOKE_USERNAME:-$(env_value OEE_SUPERUSER_USERNAME)}"
+PASSWORD="${SMOKE_PASSWORD:-$(env_value OEE_SUPERUSER_PASSWORD)}"
 
 jar="$(mktemp)"
 trap 'rm -f "$jar"' EXIT
@@ -37,6 +38,6 @@ check 401 "Session while logged out" -c "$jar" "$BASE_URL/api/auth/session/"
 csrf="$(awk '$6 == "csrftoken" { print $7 }' "$jar")"
 check 200 "Login" -b "$jar" -c "$jar" \
   -H "X-CSRFToken: $csrf" -H "Origin: $BASE_URL" -H "Content-Type: application/json" \
-  -d "{\"username\": \"$OEE_SUPERUSER_USERNAME\", \"password\": \"$OEE_SUPERUSER_PASSWORD\"}" \
+  -d "{\"username\": \"$USERNAME\", \"password\": \"$PASSWORD\"}" \
   "$BASE_URL/api/auth/login/"
 check 200 "Session while logged in" -b "$jar" "$BASE_URL/api/auth/session/"

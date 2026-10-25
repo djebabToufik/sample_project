@@ -1,0 +1,88 @@
+#!/bin/bash
+# First boot of the demo server (Amazon Linux 2023). Prepares Docker, the settings with secrets
+# generated here (they never leave the machine), and the nightly reset. The stack itself is
+# started by the first deploy: the "Deploy demo" workflow runs deploy/deploy.sh <version>.
+set -euo pipefail
+
+# --- Docker and the compose plugin (checked against the release's checksum) ---------------------
+dnf install -y docker
+plugin_dir=/usr/local/lib/docker/cli-plugins
+release=https://github.com/docker/compose/releases/download/v${compose_version}
+mkdir -p "$plugin_dir"
+curl -fsSL "$release/docker-compose-linux-x86_64" -o "$plugin_dir/docker-compose"
+curl -fsSL "$release/docker-compose-linux-x86_64.sha256" -o /tmp/docker-compose.sha256
+echo "$(cut -d' ' -f1 /tmp/docker-compose.sha256)  $plugin_dir/docker-compose" | sha256sum --check
+chmod 755 "$plugin_dir/docker-compose"
+systemctl enable --now docker
+
+# --- 1 GB swap: headroom for the 2 GB instance while images start ------------------------------
+if [ ! -f /swapfile ]; then
+  dd if=/dev/zero of=/swapfile bs=1M count=1024
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap defaults 0 0' >> /etc/fstab
+fi
+
+# --- Settings, read by docker compose and by the backend ---------------------------------------
+mkdir -p /opt/oee/caddy/data /opt/oee/caddy/config
+cd /opt/oee
+if [ ! -f .env ]; then
+  secret() { openssl rand -hex 32; }
+  cat > .env <<EOF
+COMPOSE_FILE=docker-compose.yaml:docker-compose.demo.yaml
+OEE_IMAGE_TAG=latest
+OEE_DOMAIN=${domain}
+# Only Caddy is public; nginx listens on the server itself.
+OEE_HTTP_PORT=127.0.0.1:8080
+
+OEE_SECRET_KEY=$(secret)
+OEE_DEBUG=False
+OEE_ALLOWED_HOSTS=${domain}
+OEE_CSRF_TRUSTED_ORIGINS=https://${domain}
+OEE_APP_URL=https://${domain}
+OEE_HTTPS=True
+# Caddy and nginx: the client address is the second one from the right.
+OEE_NUM_PROXIES=2
+OEE_TIME_ZONE=Europe/Berlin
+
+OEE_DB_NAME=oee
+OEE_DB_USER=oee
+OEE_DB_PASSWORD=$(secret)
+
+# The superuser is not shared: its password is only in this file.
+OEE_SUPERUSER_USERNAME=admin
+OEE_SUPERUSER_PASSWORD=$(secret)
+OEE_SUPERUSER_EMAIL=
+
+DEMO=true
+OEE_DEMO_USERNAME=${demo_username}
+OEE_DEMO_PASSWORD=${demo_password}
+OEE_ALLOW_SIGNUP=False
+EOF
+  chmod 600 .env
+fi
+
+# --- Nightly reset to fresh demo data (03:00 Berlin time) ---------------------------------------
+cat > /etc/systemd/system/oee-reset.service <<'EOF'
+[Unit]
+Description=Reset the public demo to fresh demo data
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/oee/reset.sh
+EOF
+cat > /etc/systemd/system/oee-reset.timer <<'EOF'
+[Unit]
+Description=Nightly reset of the public demo
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Europe/Berlin
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now oee-reset.timer
