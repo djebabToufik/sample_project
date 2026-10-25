@@ -19,7 +19,6 @@
     ".": {
       "release-type": "simple",
       "package-name": "portfolio-oee-cmms",
-      "release-as": "1.0.0",
       "extra-files": [
         { "type": "json", "path": "frontend/package.json", "jsonpath": "$.version" },
         { "type": "json", "path": "frontend/package-lock.json", "jsonpath": "$.version" },
