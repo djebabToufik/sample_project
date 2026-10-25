@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/djebabToufik/sample_project/compare/v1.2.0...v1.2.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **infra:** allowed characters in the outbound rule description ([#27](https://github.com/djebabToufik/sample_project/issues/27)) ([ed88502](https://github.com/djebabToufik/sample_project/commit/ed88502fd258011778438267c11ef954e0fe09f6))
+
 ## [1.2.0](https://github.com/djebabToufik/sample_project/compare/v1.1.0...v1.2.0) (2026-10-25)
 
 
