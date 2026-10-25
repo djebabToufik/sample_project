@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/djebabToufik/sample_project/compare/v1.0.8...v1.1.0) (2026-10-25)
+
+
+### Features
+
+* **demo:** shared demo account for a public demo ([#23](https://github.com/djebabToufik/sample_project/issues/23)) ([f4ad7bf](https://github.com/djebabToufik/sample_project/commit/f4ad7bf04e94ce78c31d40a9d28a25bcf89041d6))
+
 ## [1.0.8](https://github.com/djebabToufik/sample_project/compare/v1.0.7...v1.0.8) (2026-10-25)
 
 
