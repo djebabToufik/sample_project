@@ -1,6 +1,10 @@
-# Weekly dependency updates. Minor and patch updates of an area come in one pull request
-# (major ones alone, to be read), with Conventional Commit titles for the title check and
-# the changelog. Every update goes through the same CI as any other pull request.
+# Weekly dependency updates. Minor and patch updates of an area come in one pull request, with
+# Conventional Commit titles for the title check and the changelog. Every update goes through the
+# same CI as any other pull request.
+#
+# Major versions are ignored here and upgraded on purpose, in their own pull request: they need
+# code changes (React Router, TypeScript, ...), a data migration (PostgreSQL), or a choice of
+# support line (Django and Node LTS, the Python version the backend declares).
 version: 2
 
 updates:
@@ -8,6 +12,9 @@ updates:
     directory: /backend
     schedule: { interval: weekly, day: monday }
     commit-message: { prefix: build, include: scope }
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
     groups:
       backend:
         update-types: [minor, patch]
@@ -16,7 +23,13 @@ updates:
     directory: /frontend
     schedule: { interval: weekly, day: monday }
     commit-message: { prefix: build, include: scope }
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
     groups:
+      # Upgraded together: their versions have to match.
+      eslint:
+        patterns: [eslint, "@eslint/*", typescript-eslint, "eslint-*"]
       frontend:
         update-types: [minor, patch]
 
@@ -24,6 +37,12 @@ updates:
     directories: [/backend, /frontend]
     schedule: { interval: weekly, day: monday }
     commit-message: { prefix: build, include: scope }
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+      # A new Python minor version (3.13 -> 3.15) changes the version the backend declares.
+      - dependency-name: python
+        update-types: [version-update:semver-minor]
     groups:
       base-images:
         update-types: [minor, patch]
@@ -32,6 +51,9 @@ updates:
     directories: [/, /deploy]
     schedule: { interval: weekly, day: monday }
     commit-message: { prefix: build, include: scope }
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
     groups:
       compose-images:
         update-types: [minor, patch]
@@ -40,6 +62,9 @@ updates:
     directory: /infra
     schedule: { interval: weekly, day: monday }
     commit-message: { prefix: build, include: scope }
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
