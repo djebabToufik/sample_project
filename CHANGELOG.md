@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/djebabToufik/sample_project/compare/v1.2.5...v1.3.0) (2026-10-25)
+
+
+### Features
+
+* **api:** openAPI schema and swagger UI documentation ([#48](https://github.com/djebabToufik/sample_project/issues/48)) ([6b8ff7f](https://github.com/djebabToufik/sample_project/commit/6b8ff7fa1dc1a9d846857b5c33d6a9d168f171b8))
+
 ## [1.2.5](https://github.com/djebabToufik/sample_project/compare/v1.2.4...v1.2.5) (2026-10-25)
 
 
