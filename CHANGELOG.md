@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/djebabToufik/sample_project/compare/v1.2.1...v1.2.2) (2026-10-25)
+
+
+### Bug Fixes
+
+* **infra:** trust GitHub's OIDC subject with repository ids ([#29](https://github.com/djebabToufik/sample_project/issues/29)) ([04450c3](https://github.com/djebabToufik/sample_project/commit/04450c36d1ff02b0b25232d6214eb438290f4078))
+
 ## [1.2.1](https://github.com/djebabToufik/sample_project/compare/v1.2.0...v1.2.1) (2026-10-25)
 
 
