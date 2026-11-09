@@ -2,7 +2,7 @@
 # Used together with docker-compose.yaml: COMPOSE_FILE in the server's .env lists both files.
 services:
   caddy:
-    image: caddy:2.11.7-alpine
+    image: caddy:2.11.9-alpine
     restart: unless-stopped
     ports:
       - "80:80"
