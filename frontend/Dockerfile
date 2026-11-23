@@ -1,5 +1,5 @@
 # --- Build stage: compile the React app ------------------------------------------------------------
-FROM node:22.23.4 AS build
+FROM node:22.23.5 AS build
 
 WORKDIR /app
 COPY package*.json ./
@@ -14,7 +14,7 @@ RUN found="$(find /app -path /app/node_modules -prune -o \( -name .env -o -name 
 RUN npm run build
 
 # --- Runtime stage: nginx serves the build and proxies the backend ---------------------------------
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 
 COPY --from=build /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
